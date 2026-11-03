@@ -64,20 +64,19 @@
             width: 100%;
             height: 100%;
             background-color: var(--bg-color);
-            z-index: 9999; /* 최상단에 확실히 위치하도록 수정 */
+            z-index: 99999;
             pointer-events: auto;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: opacity 1s ease;
         }
 
         .intro-box {
             text-align: center;
             max-width: 400px;
             width: 90%;
-            z-index: 10000;
         }
 
         .intro-title {
@@ -113,7 +112,6 @@
             opacity: 1;
         }
 
-        /* 포커스 시 안내 문구 즉시 사라지도록 확실히 제어 */
         .nickname-input:focus::placeholder {
             color: transparent;
         }
@@ -555,12 +553,13 @@
 
     <div id="canvas-container"></div>
 
+    <!-- 인트로 화면: 버튼에 직접 onclick 함수를 박아두어 무조건 실행되게 함 -->
     <div id="intro-screen">
         <div class="intro-box">
             <h1 class="intro-title">돌탑</h1>
             <p class="intro-desc">고요한 강가에서 마음을 모아 돌을 쌓아 올립니다.<br>마우스로 드래그하여 탑을 완성하세요.</p>
-            <input type="text" id="nickname-input" class="nickname-input" placeholder="성함 또는 닉네임을 입력하세요" maxlength="12">
-            <button class="btn" id="start-btn" type="button">시작하기</button>
+            <input type="text" id="nickname-input" class="nickname-input" placeholder="성함 또는 닉네임을 입력하세요" maxlength="12" onkeydown="if(event.key==='Enter') window.startGameNow()">
+            <button class="btn" id="start-btn" type="button" onclick="window.startGameNow()">시작하기</button>
         </div>
     </div>
 
@@ -739,6 +738,30 @@
             }, 3500);
         }
 
+        // 전역 함수로 분리하여 HTML 태그에서 직접 호출 보장
+        window.startGameNow = function() {
+            if (isGameStarted) return;
+            const input = document.getElementById('nickname-input').value.trim();
+            if (input) userName = input;
+            document.getElementById('display-name').innerText = userName;
+
+            const introScreen = document.getElementById('intro-screen');
+            if (introScreen) {
+                introScreen.style.opacity = '0';
+                setTimeout(() => {
+                    introScreen.style.display = 'none';
+                    introScreen.style.pointerEvents = 'none';
+                }, 1000);
+            }
+
+            document.getElementById('hud').classList.add('visible');
+            document.getElementById('control-panel').classList.add('visible');
+
+            startTime = Date.now();
+            isGameStarted = true;
+            initAudio();
+        };
+
         window.addEventListener('load', () => {
             initThreeAndPhysics();
             setupEvents();
@@ -883,48 +906,6 @@
         }
 
         function setupEvents() {
-            const startBtn = document.getElementById('start-btn');
-            const introScreen = document.getElementById('intro-screen');
-            const nicknameInput = document.getElementById('nickname-input');
-
-            function startGame() {
-                if (isGameStarted) return;
-                const input = nicknameInput.value.trim();
-                if (input) userName = input;
-                document.getElementById('display-name').innerText = userName;
-
-                if (introScreen) {
-                    introScreen.style.opacity = '0';
-                    setTimeout(() => {
-                        introScreen.style.display = 'none';
-                        introScreen.style.pointerEvents = 'none';
-                    }, 1200);
-                }
-
-                document.getElementById('hud').classList.add('visible');
-                document.getElementById('control-panel').classList.add('visible');
-
-                startTime = Date.now();
-                isGameStarted = true;
-                initAudio();
-            }
-
-            if (startBtn) {
-                startBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    startGame();
-                });
-            }
-
-            if (nicknameInput) {
-                nicknameInput.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        startGame();
-                    }
-                });
-            }
-
             document.getElementById('sound-toggle').addEventListener('click', toggleSound);
 
             const domElem = renderer.domElement;
