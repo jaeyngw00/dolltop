@@ -39,7 +39,6 @@
             z-index: 1;
         }
 
-        /* UI 레이어 */
         .ui-layer {
             position: absolute;
             top: 0;
@@ -58,7 +57,6 @@
             pointer-events: auto;
         }
 
-        /* 인트로 화면 */
         #intro-screen {
             position: absolute;
             top: 0;
@@ -114,7 +112,7 @@
         }
 
         .nickname-input:focus::placeholder {
-            opacity: 0; /* 클릭하면 안내 문구가 사라지도록 설정 */
+            opacity: 0;
         }
 
         .btn {
@@ -144,7 +142,6 @@
             border-color: var(--text-color);
         }
 
-        /* 상단 HUD */
         .hud {
             display: flex;
             justify-content: space-between;
@@ -175,7 +172,6 @@
             font-variant-numeric: tabular-nums;
         }
 
-        /* 하단 컨트롤 패널 */
         .control-panel {
             display: flex;
             justify-content: space-between;
@@ -202,7 +198,6 @@
             backdrop-filter: blur(4px);
         }
 
-        /* 사운드 토글 */
         .sound-btn {
             background: var(--surface-color);
             border: 1px solid var(--border-color);
@@ -216,7 +211,6 @@
             border-color: var(--text-color);
         }
 
-        /* 결과 모달 */
         #result-modal {
             position: absolute;
             top: 0;
@@ -358,7 +352,6 @@
             width: 100%;
         }
 
-        /* 후기(마음 남기기) 모달 */
         #guestbook-modal {
             position: absolute;
             top: 0;
@@ -505,7 +498,6 @@
             word-break: break-all;
         }
 
-        /* 문의 페이지 모달 */
         #contact-modal {
             position: absolute;
             top: 0;
@@ -550,7 +542,6 @@
             color: var(--text-color);
         }
     </style>
-    <!-- Three.js 및 Cannon-es, OrbitControls CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon-es/0.20.0/cannon-es.min.js"></script>
@@ -559,7 +550,6 @@
 
     <div id="canvas-container"></div>
 
-    <!-- 인트로 화면 -->
     <div id="intro-screen">
         <div class="intro-box interactive">
             <h1 class="intro-title">돌탑</h1>
@@ -569,7 +559,6 @@
         </div>
     </div>
 
-    <!-- 메인 UI 레이어 -->
     <div class="ui-layer" id="ui-layer">
         <div class="hud" id="hud">
             <div class="hud-group">
@@ -598,7 +587,6 @@
         </div>
     </div>
 
-    <!-- 결과 모달 -->
     <div id="result-modal">
         <div class="modal-card">
             <div class="silhouette-preview" id="silhouette-preview-box"></div>
@@ -635,7 +623,6 @@
         </div>
     </div>
 
-    <!-- 후기(마음 남기기) 모달 -->
     <div id="guestbook-modal">
         <div class="guestbook-card">
             <div class="guestbook-header">
@@ -653,7 +640,6 @@
         </div>
     </div>
 
-    <!-- 문의 페이지 모달 -->
     <div id="contact-modal">
         <div class="contact-card">
             <div class="guestbook-header" style="margin-bottom: 16px;">
@@ -672,7 +658,6 @@
         </div>
     </div>
 
-    <!-- 다운로드용 숨겨진 캔버스 -->
     <canvas id="export-canvas" width="1080" height="1080" style="display:none;"></canvas>
 
     <script>
