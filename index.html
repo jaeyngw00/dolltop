@@ -1,1713 +1,1299 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>돌탑 — 강가에 앉아 마음을 포개어 올리는 시간</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>돌탑 — 고요한 강가의 기록</title>
+    <style>
+        :root {
+            --bg-color: #F6F5F0;
+            --surface-color: #FCFAF5;
+            --text-color: #3F3D39;
+            --text-light: #8C887F;
+            --border-color: #E2DFD6;
+            --accent-color: #6B675E;
+        }
 
-  <!-- Google Fonts: Noto Sans KR & Nanum Myeongjo -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet">
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
 
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
 
-  <!-- ES Module Import Map for Three.js & Cannon-es -->
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-        "cannon-es": "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"
-      }
-    }
-  </script>
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
 
-  <style>
-    :root {
-      --bg-paper: #F6F5F0;
-      --bg-warm: #ECEAE2;
-      --surface-card: #FCFAF5;
-      --ink-deep: #3F3D39;
-      --ink-silhouette: #43413C;
-      --ink-soft: #7A766E;
-      --ink-faint: #9E9A90;
-      --line-subtle: #E2DFD7;
-      --accent-warm: #8C5843;
-    }
+        /* UI 레이어 */
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 32px;
+        }
 
-    * {
-      box-sizing: border-box;
-      border-radius: 0px !important;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      user-select: none;
-    }
+        .interactive {
+            pointer-events: auto;
+        }
 
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background-color: var(--bg-paper);
-      color: var(--ink-deep);
-      font-family: 'Noto Sans KR', sans-serif;
-      font-weight: 300;
-    }
+        /* 인트로 화면 */
+        #intro-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
 
-    .serif-title {
-      font-family: 'Nanum Myeongjo', serif;
-    }
+        .intro-box {
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
 
-    .paper-grain {
-      pointer-events: none;
-      position: fixed;
-      inset: 0;
-      z-index: 40;
-      opacity: 0.028;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-    }
+        .intro-title {
+            font-size: 28px;
+            font-weight: 300;
+            letter-spacing: 0.1em;
+            margin-bottom: 12px;
+            color: var(--text-color);
+        }
 
-    .tabular-nums {
-      font-variant-numeric: tabular-nums;
-      font-feature-settings: "tnum" 1;
-    }
+        .intro-desc {
+            font-size: 13px;
+            color: var(--text-light);
+            line-height: 1.6;
+            margin-bottom: 36px;
+        }
 
-    .calm-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 11px 22px;
-      font-size: 13px;
-      font-weight: 400;
-      letter-spacing: 0.04em;
-      border: 1px solid var(--line-subtle);
-      background-color: rgba(252, 250, 245, 0.75);
-      color: var(--ink-deep);
-      transition: all 0.25s ease;
-      cursor: pointer;
-    }
+        .nickname-input {
+            width: 100%;
+            padding: 14px 0;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--text-color);
+            font-size: 16px;
+            text-align: center;
+            color: var(--text-color);
+            outline: none;
+            margin-bottom: 24px;
+        }
 
-    .calm-btn:hover:not(:disabled) {
-      border-color: var(--ink-soft);
-      background-color: var(--ink-deep);
-      color: var(--surface-card);
-    }
+        .btn {
+            background: var(--text-color);
+            color: var(--bg-color);
+            border: none;
+            padding: 14px 32px;
+            font-size: 13px;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: background 0.3s;
+            width: 100%;
+        }
 
-    .calm-btn-primary {
-      background-color: var(--ink-deep);
-      color: var(--surface-card);
-      border-color: var(--ink-deep);
-    }
+        .btn:hover {
+            background: var(--accent-color);
+        }
 
-    .calm-btn-primary:hover:not(:disabled) {
-      background-color: #54514C;
-      border-color: #54514C;
-    }
+        .btn-outline {
+            background: transparent;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
 
-    .calm-btn:disabled {
-      opacity: 0.38;
-      cursor: not-allowed;
-    }
+        .btn-outline:hover {
+            background: var(--surface-color);
+            border-color: var(--text-color);
+        }
 
-    .text-link-btn {
-      font-size: 12px;
-      color: var(--ink-soft);
-      letter-spacing: 0.03em;
-      padding: 6px 10px;
-      transition: color 0.2s ease;
-      cursor: pointer;
-      background: transparent;
-      border: none;
-    }
+        /* 상단 HUD */
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            opacity: 0;
+            transition: opacity 1s ease 0.5s;
+        }
 
-    .text-link-btn:hover:not(:disabled) {
-      color: var(--ink-deep);
-    }
+        .hud.visible {
+            opacity: 1;
+        }
 
-    .text-link-btn:disabled {
-      opacity: 0.35;
-      cursor: default;
-    }
+        .hud-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
 
-    ::-webkit-scrollbar {
-      width: 3px;
-      height: 3px;
-    }
-    ::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: var(--line-subtle);
-    }
+        .hud-label {
+            font-size: 11px;
+            letter-spacing: 0.15em;
+            color: var(--text-light);
+        }
 
-    #canvas-container {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-      touch-action: none;
-    }
+        .hud-value {
+            font-size: 18px;
+            font-weight: 400;
+            font-variant-numeric: tabular-nums;
+        }
 
-    .fade-view {
-      transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.9s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-  </style>
+        /* 하단 컨트롤 패널 */
+        .control-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            opacity: 0;
+            transition: opacity 1s ease 0.5s;
+        }
+
+        .control-panel.visible {
+            opacity: 1;
+        }
+
+        .action-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: var(--text-light);
+            background: rgba(246, 245, 240, 0.85);
+            padding: 8px 14px;
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(4px);
+        }
+
+        /* 사운드 토글 */
+        .sound-btn {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 16px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .sound-btn:hover {
+            border-color: var(--text-color);
+        }
+
+        /* 결과 모달 */
+        #result-modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(63, 61, 57, 0.4);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        #result-modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            padding: 40px;
+            width: 440px;
+            max-width: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .silhouette-preview {
+            width: 160px;
+            height: 160px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .silhouette-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .result-title {
+            font-size: 18px;
+            font-weight: 400;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+
+        .result-subtitle {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-bottom: 24px;
+        }
+
+        .result-stats {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+            text-align: left;
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+        }
+
+        .stat-item .label {
+            font-size: 10px;
+            color: var(--text-light);
+            letter-spacing: 0.1em;
+            margin-bottom: 4px;
+        }
+
+        .stat-item .val {
+            font-size: 16px;
+            font-weight: 400;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .qr-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            padding: 12px 16px;
+            width: 100%;
+            margin-bottom: 24px;
+            text-align: left;
+        }
+
+        .qr-placeholder {
+            width: 48px;
+            height: 48px;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            color: var(--text-light);
+            text-align: center;
+        }
+
+        .qr-info .site-link {
+            font-size: 12px;
+            color: var(--text-color);
+            font-weight: 500;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .qr-info .sns-handle {
+            font-size: 11px;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+        }
+
+        /* 후기(마음 남기기) 모달 및 페이지 */
+        #guestbook-modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(63, 61, 57, 0.4);
+            backdrop-filter: blur(8px);
+            z-index: 110;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        #guestbook-modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .guestbook-card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            padding: 36px;
+            width: 480px;
+            max-width: 90%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .guestbook-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .guestbook-title {
+            font-size: 16px;
+            font-weight: 400;
+            letter-spacing: 0.05em;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: var(--text-light);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .textarea-wrap {
+            position: relative;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            font-size: 13px;
+            color: var(--text-color);
+            resize: none;
+            outline: none;
+        }
+
+        textarea:focus {
+            border-color: var(--text-color);
+        }
+
+        .char-counter {
+            position: absolute;
+            bottom: 8px;
+            right: 12px;
+            font-size: 10px;
+            color: var(--text-light);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .guestbook-list {
+            flex: 1;
+            overflow-y: auto;
+            margin-top: 16px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 16px;
+            max-height: 200px;
+        }
+
+        .guestbook-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .guestbook-profile {
+            width: 32px;
+            height: 32px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .guestbook-profile img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .guestbook-content {
+            flex: 1;
+        }
+
+        .guestbook-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .guestbook-author {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .guestbook-text {
+            font-size: 12px;
+            color: var(--text-color);
+            line-height: 1.4;
+            word-break: break-all;
+        }
+
+        /* 문의 페이지 모달 */
+        #contact-modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(63, 61, 57, 0.4);
+            backdrop-filter: blur(8px);
+            z-index: 120;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        #contact-modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .contact-card {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            padding: 36px;
+            width: 380px;
+            max-width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+        }
+
+        .nav-link-btn {
+            background: none;
+            border: none;
+            font-size: 12px;
+            color: var(--text-light);
+            cursor: pointer;
+            text-decoration: underline;
+            padding: 4px;
+        }
+        .nav-link-btn:hover {
+            color: var(--text-color);
+        }
+    </style>
+    <!-- Three.js 및 Cannon-es, OrbitControls CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon-es/0.20.0/cannon-es.min.js"></script>
 </head>
-<body class="relative select-none">
+<body>
 
-  <div class="paper-grain"></div>
-  <div id="canvas-container"></div>
+    <div id="canvas-container"></div>
 
-  <!-- 1. 시작 화면 -->
-  <section id="intro-overlay" class="fixed inset-0 z-30 flex flex-col justify-between p-8 md:p-16 bg-[#F6F5F0]/88 backdrop-blur-[3px] fade-view">
-    <div class="flex justify-between items-center text-xs text-[#9E9A90] tracking-widest">
-      <span>고요한 강가의 기록</span>
-      <button id="intro-archive-btn" type="button" class="text-link-btn">남겨진 마음들 둘러보기</button>
+    <!-- 인트로 화면 -->
+    <div id="intro-screen">
+        <div class="intro-box">
+            <h1 class="intro-title">돌탑</h1>
+            <p class="intro-desc">고요한 강가에서 마음을 모아 돌을 쌓아 올립니다.<br>마우스로 드래그하여 탑을 완성하세요.</p>
+            <input type="text" id="nickname-input" class="nickname-input" placeholder="성함 또는 닉네임을 입력하세요" maxlength="12">
+            <button class="btn" id="start-btn">시작하기</button>
+        </div>
     </div>
 
-    <div class="my-auto mx-auto w-full max-w-sm text-center">
-      <h1 class="serif-title text-3xl md:text-4xl font-normal tracking-wide text-[#3F3D39] mb-4">돌탑</h1>
-      <p class="text-xs md:text-sm text-[#7A766E] leading-relaxed mb-12 font-light">
-        물가에 흩어진 돌을 천천히 들어 올려<br />
-        자신만의 높이와 균형을 찾아보세요.<br />
-        메인 돌 위에 올라간 돌이 떨어지면 끝납니다.
-      </p>
-
-      <form id="intro-form" class="space-y-8" onsubmit="return false;">
-        <div class="text-left">
-          <input 
-            id="nickname-input" 
-            type="text" 
-            maxlength="20"
-            placeholder="이름이나 짧은 호칭을 적어주세요"
-            required
-            autocomplete="off"
-            class="w-full bg-transparent border-0 border-b border-[#D5D1C8] py-3 text-center text-sm text-[#3F3D39] placeholder-[#A8A49B] focus:outline-none focus:border-[#3F3D39] transition-colors"
-          />
-          <p id="nickname-error" class="text-xs text-[#8C5843] text-center mt-2 hidden">기록에 남길 이름을 적어주세요.</p>
+    <!-- 메인 UI 레이어 -->
+    <div class="ui-layer" id="ui-layer">
+        <div class="hud" id="hud">
+            <div class="hud-group">
+                <span class="hud-label">BUILDER</span>
+                <span class="hud-value" id="display-name">참가자</span>
+            </div>
+            <div class="hud-group" style="text-align: center;">
+                <span class="hud-label">STACKED STONES</span>
+                <span class="hud-value" id="display-count">0 개</span>
+            </div>
+            <div class="hud-group" style="text-align: right;">
+                <span class="hud-label">ACTIONS</span>
+                <button class="nav-link-btn" id="open-contact-from-game">문의하기</button>
+            </div>
         </div>
 
-        <div class="pt-2">
-          <button id="start-btn" type="submit" class="calm-btn calm-btn-primary w-full py-3.5">
-            강가로 걸어가기
-          </button>
+        <div class="control-panel" id="control-panel">
+            <div class="action-group">
+                <div class="help-text">마우스 드래그로 돌을 움직여 쌓아주세요 (시점 회전 가능)</div>
+            </div>
+            <div class="action-group">
+                <button class="btn btn-outline interactive" id="extra-stone-btn">돌 더 가져오기 (3)</button>
+                <button class="btn interactive" id="finish-btn">이만 마치고 기록하기</button>
+                <button class="sound-btn interactive" id="sound-toggle">소리 켜기</button>
+            </div>
         </div>
-      </form>
     </div>
 
-    <div class="text-center text-[11px] text-[#9E9A90] tracking-wider">
-      마우스로 끌어 이동 · 마우스 휠로 돌의 기울기 조절
+    <!-- 결과 모달 -->
+    <div id="result-modal">
+        <div class="modal-card">
+            <div class="silhouette-preview" id="silhouette-preview-box">
+                <!-- 2D 실루엣 이미지 렌더링 -->
+            </div>
+            <div class="result-title" id="result-title-text">돌탑 쌓기 완료</div>
+            <div class="result-subtitle" id="result-time-text">소요 시간 00m 00s</div>
+
+            <div class="result-stats">
+                <div class="stat-item">
+                    <div class="label">TOTAL STONES</div>
+                    <div class="val" id="res-stones">0 개</div>
+                </div>
+                <div class="stat-item">
+                    <div class="label">MAX HEIGHT</div>
+                    <div class="val" id="res-height">0.0 cm</div>
+                </div>
+            </div>
+
+            <div class="qr-section">
+                <div class="qr-placeholder" id="qr-code-area">
+                    QR CODE
+                </div>
+                <div class="qr-info">
+                    <a href="https://jaeyngw00.github.io/doltop/" class="site-link" target="_blank">돌탑 온라인 전시 사이트</a>
+                    <div class="sns-handle">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                        @jaeyngwoo
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn interactive" id="download-png-btn">사진으로 간직하기 (PNG)</button>
+                <button class="btn btn-outline interactive" id="go-guestbook-btn">마음 남기기</button>
+                <button class="btn btn-outline interactive" id="retry-btn">처음부터 다시 하기</button>
+            </div>
+        </div>
     </div>
-  </section>
 
-  <!-- 2. 게임 HUD 화면 -->
-  <div id="game-hud" class="fixed inset-0 z-20 pointer-events-none flex flex-col justify-between p-6 md:p-12 opacity-0 invisible fade-view">
-    <div class="flex justify-between items-start">
-      <div class="space-y-1">
-        <div class="flex items-baseline space-x-6">
-          <div>
-            <span class="text-[11px] text-[#9E9A90] block mb-0.5">쌓은 돌</span>
-            <span id="hud-stones" class="text-2xl font-normal tabular-nums text-[#3F3D39]">0</span>
-            <span class="text-xs text-[#7A766E] ml-0.5">개</span>
-          </div>
-          <div>
-            <span class="text-[11px] text-[#9E9A90] block mb-0.5">가장 높은 곳</span>
-            <span id="hud-height" class="text-2xl font-normal tabular-nums text-[#3F3D39]">0.0</span>
-            <span class="text-xs text-[#7A766E] ml-0.5">cm</span>
-          </div>
+    <!-- 후기(마음 남기기) 모달 -->
+    <div id="guestbook-modal">
+        <div class="guestbook-card">
+            <div class="guestbook-header">
+                <div class="guestbook-title">마음 남기기 방명록</div>
+                <button class="close-btn interactive" id="close-guestbook">&times;</button>
+            </div>
+            <div class="form-group">
+                <div class="textarea-wrap">
+                    <textarea id="guestbook-input" placeholder="돌탑을 쌓으며 느낀 감상을 77자 이내로 적어주세요." maxlength="77"></textarea>
+                    <div class="char-counter"><span id="char-count">0</span>/77자</div>
+                </div>
+                <button class="btn interactive" id="submit-guestbook" style="margin-top: 8px;">마음 새기기</button>
+            </div>
+            <div class="guestbook-list" id="guestbook-list-container">
+                <!-- 방명록 목록 -->
+            </div>
         </div>
-        <p id="hud-status-text" class="text-xs text-[#7A766E] pt-1 transition-opacity">돌을 마우스로 끌어 올려보세요</p>
-      </div>
-
-      <div class="flex flex-col items-end space-y-2 pointer-events-auto">
-        <div class="flex items-center space-x-4">
-          <button id="bgm-toggle-btn" type="button" class="text-link-btn text-xs">소리 켜짐</button>
-          <span class="text-[#E2DFD7]">|</span>
-          <div class="text-right">
-            <span class="text-[11px] text-[#9E9A90] mr-2">남은 시간</span>
-            <span id="hud-countdown" class="text-sm tabular-nums text-[#3F3D39]">03:00</span>
-          </div>
-        </div>
-        <div class="w-32 h-[1.5px] bg-[#E2DFD7] overflow-hidden">
-          <div id="stability-bar" class="h-full bg-[#6E6A63] w-0 transition-all duration-100"></div>
-        </div>
-      </div>
     </div>
 
-    <div class="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-[#E2DFD7]/70 pointer-events-auto">
-      <div class="text-xs text-[#9E9A90]">마우스 드래그로 이동 · 휠로 기울기 조절</div>
-      <div class="flex items-center space-x-6">
-        <button id="hud-replenish-btn" type="button" class="text-link-btn tabular-nums">돌 더 가져오기 (3)</button>
-        <button id="hud-finish-btn" type="button" class="calm-btn py-2 px-5 text-xs">이만 마치고 기록하기</button>
-      </div>
+    <!-- 문의 페이지 모달 -->
+    <div id="contact-modal">
+        <div class="contact-card">
+            <div class="guestbook-header" style="margin-bottom: 16px;">
+                <div class="guestbook-title">문의 및 연락처</div>
+                <button class="close-btn interactive" id="close-contact">&times;</button>
+            </div>
+            <p class="intro-desc" style="margin-bottom: 20px;">프로젝트 관련 문의사항은 아래 인스타그램을 통해 연락해 주세요.</p>
+            <div class="qr-section" style="justify-content: center; text-align: center; margin-bottom: 20px;">
+                <div class="qr-placeholder" style="width: 70px; height: 70px;" id="contact-qr">QR</div>
+                <div>
+                    <a href="https://instagram.com/jaeyngwoo" target="_blank" class="site-link" style="font-size: 14px; font-weight: 600;">@jaeyngwoo 인스타그램</a>
+                    <span style="font-size: 11px; color: var(--text-light);">클릭시 프로필로 이동합니다</span>
+                </div>
+            </div>
+            <button class="btn btn-outline interactive" id="back-from-contact">돌아가기</button>
+        </div>
     </div>
-  </div>
 
-  <!-- 3. 결과 팝업창 -->
-  <section id="result-modal" class="fixed inset-0 z-30 flex items-center justify-center p-5 md:p-10 bg-[#3F3D39]/25 backdrop-blur-[4px] opacity-0 invisible fade-view overflow-y-auto">
-    <div class="my-auto flex flex-col items-center w-full max-w-[480px]">
-      <div id="poster-square" class="relative w-full aspect-square bg-[#FCFAF5] border border-[#E2DFD7] p-7 sm:p-9 flex flex-col justify-between overflow-hidden shadow-[0_20px_50px_rgba(63,61,57,0.08)]">
-        <div class="absolute inset-0 pointer-events-none flex items-center justify-center z-0 p-10">
-          <img id="silhouette-preview-img" alt="돌탑 실루엣" class="w-full h-full object-contain opacity-90" />
-        </div>
-        <div class="relative z-10 flex justify-between items-start border-b border-[#E2DFD7] pb-3.5">
-          <div>
-            <p id="result-reason-badge" class="text-[11px] text-[#9E9A90] mb-1">고요히 쌓아 올린 기록</p>
-            <h3 class="serif-title text-lg text-[#3F3D39] font-normal">강가의 돌탑</h3>
-          </div>
-          <div class="text-right flex space-x-5">
-            <div>
-              <span class="text-[10px] text-[#9E9A90] block">쌓은 돌</span>
-              <span id="result-stones" class="text-lg tabular-nums text-[#3F3D39]">0개</span>
-            </div>
-            <div>
-              <span class="text-[10px] text-[#9E9A90] block">높이</span>
-              <span id="result-height" class="text-lg tabular-nums text-[#3F3D39]">0.0cm</span>
-            </div>
-          </div>
-        </div>
-        <div class="relative z-10 flex-1"></div>
-        <div class="relative z-10 border-t border-[#E2DFD7] pt-3.5 bg-[#FCFAF5]/85 backdrop-blur-[1px]">
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-            <div>
-              <span class="text-[#9E9A90] block">쌓은 이</span>
-              <span id="result-builder" class="text-[#3F3D39] truncate block mt-0.5">—</span>
-            </div>
-            <div>
-              <span class="text-[#9E9A90] block">시작한 시각</span>
-              <span id="result-started" class="text-[#3F3D39] tabular-nums block mt-0.5">—</span>
-            </div>
-            <div>
-              <span class="text-[#9E9A90] block">마친 시각</span>
-              <span id="result-finished" class="text-[#3F3D39] tabular-nums block mt-0.5">—</span>
-            </div>
-            <div>
-              <span class="text-[#9E9A90] block">머문 시간</span>
-              <span id="result-duration" class="text-[#3F3D39] tabular-nums block mt-0.5">—</span>
-            </div>
-          </div>
-        </div>
-      </div>
+    <!-- 다운로드용 숨겨진 캔버스 -->
+    <canvas id="export-canvas" width="1080" height="1080" style="display:none;"></canvas>
 
-      <div class="w-full grid grid-cols-3 gap-2.5 mt-4">
-        <button id="export-png-btn" type="button" class="calm-btn calm-btn-primary py-3 text-xs">사진으로 간직하기</button>
-        <button id="retry-btn" type="button" class="calm-btn py-3 text-xs">다시 쌓기</button>
-        <button id="go-archive-btn" type="button" class="calm-btn py-3 text-xs">마음 남기기</button>
-      </div>
-    </div>
-  </section>
+    <script>
+        // --- 전역 변수 및 설정 ---
+        let scene, camera, renderer, controls;
+        let world;
+        let physicsBodies = [];
+        let renderMeshes = [];
+        let currentActiveStone = null;
+        let isDragging = false;
+        let raycaster, mouse;
+        let planeZ;
+        
+        let userName = "참가자";
+        let startTime = null;
+        let elapsedTimeTimer = 0;
+        let isGameStarted = false;
+        let isGameOver = false;
+        let extraStoneCount = 3;
+        let stackedStonesCount = 0;
+        let maxTowerHeight = 0.0;
+        let currentSilhouetteDataUrl = "";
+        let audioCtx = null;
+        let isAudioPlaying = false;
+        let audioInterval = null;
 
-  <!-- 4. 후기 남기기 페이지 (프로필 실루엣 포함) -->
-  <section id="archive-page" class="fixed inset-0 z-30 bg-[#F6F5F0] opacity-0 invisible fade-view overflow-y-auto">
-    <div class="min-h-full max-w-3xl mx-auto px-6 py-12 md:py-20 flex flex-col justify-between">
-      <div>
-        <div class="border-b border-[#E2DFD7] pb-6 flex justify-between items-end">
-          <div>
-            <p class="text-xs text-[#9E9A90] mb-1.5">사라지지 않는 강가의 문장들</p>
-            <h2 class="serif-title text-2xl md:text-3xl text-[#3F3D39] font-normal">남겨진 마음들</h2>
-          </div>
-          <button id="archive-back-btn" type="button" class="calm-btn py-2 px-5 text-xs">강가로 돌아가기</button>
-        </div>
+        let mainStoneBody = null;
+        let mainStoneMesh = null;
 
-        <div class="bg-[#FCFAF5] border border-[#E2DFD7] p-6 md:p-8 mt-8">
-          <form id="archive-form" onsubmit="return false;" class="space-y-4">
-            <div class="flex justify-between items-center text-xs text-[#7A766E]">
-              <div class="flex items-center space-x-3">
-                <div id="my-profile-silhouette" class="w-8 h-8 bg-[#ECEAE2] border border-[#E2DFD7] flex items-center justify-center overflow-hidden"></div>
-                <input id="archive-nickname" type="text" readonly value="이름 없음" class="bg-transparent text-[#3F3D39] font-normal focus:outline-none w-36 cursor-default" />
-              </div>
-              <span id="archive-stone-badge" class="tabular-nums text-[#9E9A90]">0개 · 0.0cm</span>
-            </div>
+        // 초기 방명록 데이터 (요청대로 기본 2개 글 삭제 상태로 시작, 빈 배열)
+        let guestbookEntries = [];
 
-            <textarea 
-              id="archive-note-input" 
-              rows="2"
-              maxlength="77"
-              placeholder="돌을 올리며 스쳐간 생각이나 마음을 일흔일곱 자 이내로 적어주세요. 한 번 남긴 글은 지워지지 않습니다."
-              class="w-full bg-[#F6F5F0] border border-[#E2DFD7] p-3.5 text-sm text-[#3F3D39] placeholder-[#A8A49B] focus:outline-none focus:border-[#7A766E] resize-none leading-relaxed font-light"
-            ></textarea>
+        const stoneColors = [0x5A564E, 0x4A4740, 0x6E6A60, 0x7A756B, 0x535048, 0x45423C];
 
-            <div class="flex justify-between items-center pt-1">
-              <span id="archive-feedback" class="text-xs text-[#9E9A90]">한글과 공백 포함 일흔일곱 자까지 적을 수 있습니다.</span>
-              <div class="flex items-center space-x-4">
-                <span id="char-counter" class="text-xs tabular-nums text-[#7A766E]">0 / 77</span>
-                <button id="submit-note-btn" type="submit" class="calm-btn calm-btn-primary py-2 px-6 text-xs">마음 새기기</button>
-              </div>
-            </div>
-          </form>
-        </div>
-
-        <div class="mt-12">
-          <div class="flex justify-between items-baseline border-b border-[#E2DFD7] pb-2.5 mb-2">
-            <span class="text-xs text-[#7A766E]">차곡차곡 쌓인 문장</span>
-            <span id="archive-total-count" class="text-xs tabular-nums text-[#9E9A90]">모두 0편</span>
-          </div>
-          <div id="archive-list" class="divide-y divide-[#E2DFD7]"></div>
-        </div>
-      </div>
-
-      <footer class="mt-16 pt-6 border-t border-[#E2DFD7] flex justify-between items-center text-[11px] text-[#9E9A90]">
-        <span>돌탑 — 고요한 강가의 기록</span>
-        <span>한 번 새겨진 글은 수정하거나 지울 수 없습니다</span>
-      </footer>
-    </div>
-  </section>
-
-  <!-- SCRIPTS -->
-  <script type="module">
-    import * as THREE from 'three';
-    import * as CANNON from 'cannon-es';
-
-    class CalmRiverSoundscape {
-      constructor() {
-        this.ctx = null;
-        this.isPlaying = false;
-        this.isMuted = false;
-        this.masterGain = null;
-        this.loopTimer = null;
-        this.scale = [146.83, 164.81, 185.00, 220.00, 246.94, 293.66, 329.63, 369.99, 440.00, 493.88];
-        this.stepIndex = 0;
-      }
-
-      initAndPlay() {
-        if (this.ctx) {
-          if (this.ctx.state === 'suspended') this.ctx.resume();
-          return;
-        }
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (!AudioCtx) return;
-
-        this.ctx = new AudioCtx();
-        this.masterGain = this.ctx.createGain();
-        this.masterGain.gain.setValueAtTime(0.01, this.ctx.currentTime);
-        this.masterGain.gain.linearRampToValueAtTime(0.32, this.ctx.currentTime + 2.5);
-        this.masterGain.connect(this.ctx.destination);
-
-        this.startWaterBreezeNoise();
-        this.startDronePad();
-        this.startMeditativePluckLoop();
-        this.isPlaying = true;
-      }
-
-      startWaterBreezeNoise() {
-        const bufferSize = this.ctx.sampleRate * 4;
-        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-        const output = buffer.getChannelData(0);
-        let b0=0, b1=0, b2=0, b3=0, b4=0, b5=0, b6=0;
-        for (let i = 0; i < bufferSize; i++) {
-          const white = Math.random() * 2 - 1;
-          b0 = 0.99886 * b0 + white * 0.0555179;
-          b1 = 0.99332 * b1 + white * 0.0750759;
-          b2 = 0.96900 * b2 + white * 0.1538520;
-          b3 = 0.86650 * b3 + white * 0.3104856;
-          b4 = 0.55000 * b4 + white * 0.5329522;
-          b5 = -0.7616 * b5 - white * 0.0168980;
-          output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.015;
-          b6 = white * 0.115926;
+        // --- 사운드 생성기 (Web Audio API) ---
+        function initAudio() {
+            if (audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
 
-        const whiteNoise = this.ctx.createBufferSource();
-        whiteNoise.buffer = buffer;
-        whiteNoise.loop = true;
-
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'bandpass';
-        filter.frequency.value = 340;
-        filter.Q.value = 0.7;
-
-        const breezeGain = this.ctx.createGain();
-        breezeGain.gain.value = 0.16;
-
-        whiteNoise.connect(filter);
-        filter.connect(breezeGain);
-        breezeGain.connect(this.masterGain);
-        whiteNoise.start(0);
-      }
-
-      startDronePad() {
-        [146.83, 220.00].forEach(f => {
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.value = f;
-          gain.gain.value = 0.045;
-          osc.connect(gain);
-          gain.connect(this.masterGain);
-          osc.start();
-        });
-      }
-
-      startMeditativePluckLoop() {
-        const pattern = [0, 3, 4, 2, 5, 3, 6, 4];
-        const triggerNote = () => {
-          if (!this.ctx || this.isMuted) return;
-          const now = this.ctx.currentTime;
-          const noteIdx = pattern[this.stepIndex % pattern.length];
-          const freq = this.scale[noteIdx];
-          this.stepIndex++;
-
-          this.playGentleTone(freq, now, 3.8, 0.11);
-          if (this.stepIndex % 3 === 0) {
-            const harmFreq = this.scale[(noteIdx + 2) % this.scale.length];
-            this.playGentleTone(harmFreq, now + 0.65, 3.2, 0.065);
-          }
-        };
-
-        triggerNote();
-        this.loopTimer = setInterval(triggerNote, 2400);
-      }
-
-      playGentleTone(freq, startTime, duration, peakGain) {
-        const osc = this.ctx.createOscillator();
-        const subOsc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, startTime);
-
-        subOsc.type = 'triangle';
-        subOsc.frequency.setValueAtTime(freq * 2, startTime);
-
-        const subGain = this.ctx.createGain();
-        subGain.gain.setValueAtTime(0.015, startTime);
-
-        gain.gain.setValueAtTime(0.0001, startTime);
-        gain.gain.linearRampToValueAtTime(peakGain, startTime + 0.08);
-        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
-
-        osc.connect(gain);
-        subOsc.connect(subGain);
-        subGain.connect(gain);
-        gain.connect(this.masterGain);
-
-        osc.start(startTime);
-        subOsc.start(startTime);
-        osc.stop(startTime + duration + 0.1);
-        subOsc.stop(startTime + duration + 0.1);
-      }
-
-      playStoneSettleChime() {
-        if (!this.ctx || this.isMuted) return;
-        this.playGentleTone(587.33, this.ctx.currentTime, 1.8, 0.09);
-      }
-
-      toggleMute() {
-        if (!this.ctx) {
-          this.initAndPlay();
-          return false;
-        }
-        this.isMuted = !this.isMuted;
-        const now = this.ctx.currentTime;
-        this.masterGain.gain.cancelScheduledValues(now);
-        this.masterGain.gain.linearRampToValueAtTime(this.isMuted ? 0.0001 : 0.32, now + 0.4);
-        return this.isMuted;
-      }
-    }
-
-    const soundscape = new CalmRiverSoundscape();
-
-    const state = {
-      nickname: '',
-      phase: 'INTRO',
-      startedAt: null,
-      finishedAt: null,
-      elapsedSeconds: 0,
-      countdownSeconds: 180.0,
-      stackedCount: 0,
-      maxHeightCm: 0.0,
-      replenishRemaining: 3,
-      endReason: '',
-      lastSilhouetteDataURL: null,
-      stabilizingCandidate: null,
-      stabilizeTimer: 0
-    };
-
-    const dom = {
-      canvasContainer: document.getElementById('canvas-container'),
-      introOverlay: document.getElementById('intro-overlay'),
-      introForm: document.getElementById('intro-form'),
-      nicknameInput: document.getElementById('nickname-input'),
-      nicknameError: document.getElementById('nickname-error'),
-      introArchiveBtn: document.getElementById('intro-archive-btn'),
-
-      gameHud: document.getElementById('game-hud'),
-      hudStones: document.getElementById('hud-stones'),
-      hudHeight: document.getElementById('hud-height'),
-      hudStatusText: document.getElementById('hud-status-text'),
-      hudCountdown: document.getElementById('hud-countdown'),
-      hudFinishBtn: document.getElementById('hud-finish-btn'),
-      hudReplenishBtn: document.getElementById('hud-replenish-btn'),
-      bgmToggleBtn: document.getElementById('bgm-toggle-btn'),
-      stabilityBar: document.getElementById('stability-bar'),
-
-      resultModal: document.getElementById('result-modal'),
-      silhouettePreviewImg: document.getElementById('silhouette-preview-img'),
-      resultReasonBadge: document.getElementById('result-reason-badge'),
-      resultStones: document.getElementById('result-stones'),
-      resultHeight: document.getElementById('result-height'),
-      resultBuilder: document.getElementById('result-builder'),
-      resultStarted: document.getElementById('result-started'),
-      resultFinished: document.getElementById('result-finished'),
-      resultDuration: document.getElementById('result-duration'),
-      exportPngBtn: document.getElementById('export-png-btn'),
-      retryBtn: document.getElementById('retry-btn'),
-      goArchiveBtn: document.getElementById('go-archive-btn'),
-
-      archivePage: document.getElementById('archive-page'),
-      archiveBackBtn: document.getElementById('archive-back-btn'),
-      archiveForm: document.getElementById('archive-form'),
-      archiveNickname: document.getElementById('archive-nickname'),
-      archiveStoneBadge: document.getElementById('archive-stone-badge'),
-      archiveNoteInput: document.getElementById('archive-note-input'),
-      charCounter: document.getElementById('char-counter'),
-      submitNoteBtn: document.getElementById('submit-note-btn'),
-      archiveFeedback: document.getElementById('archive-feedback'),
-      archiveList: document.getElementById('archive-list'),
-      archiveTotalCount: document.getElementById('archive-total-count'),
-      myProfileSilhouette: document.getElementById('my-profile-silhouette')
-    };
-
-    let scene, camera, renderer;
-    let world, stonePhysicsMaterial, groundPhysicsMaterial;
-    let stones = [];
-    let baseStone = null;
-    let alignmentLaser = null;
-    let shadowRing = null;
-
-    const CAM_START_POS = new THREE.Vector3(0, 22, 30);
-    const CAM_START_LOOK = new THREE.Vector3(0, 6, 0);
-    const CAM_FINAL_POS = new THREE.Vector3(0, 5.2, 12.6);
-    const CAM_FINAL_LOOK = new THREE.Vector3(0, 2.2, 0);
-    let camAnimStartTime = 0;
-    const CAM_ANIM_DURATION = 2800;
-
-    const raycaster = new THREE.Raycaster();
-    const pointer = new THREE.Vector2();
-    const dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-    const dragIntersectPoint = new THREE.Vector3();
-    let draggedStone = null;
-    let targetDragPos = new THREE.Vector3();
-    let heldEuler = new THREE.Euler(0, 0, 0, 'YXZ');
-
-    const SILHOUETTE_SIZE = 900;
-    let silRenderer, silCamera, silCanvas2D;
-
-    function pseudoNoise3D(x, y, z, seed) {
-      const n1 = Math.sin(x * 2.1 + seed * 1.5) * Math.cos(y * 2.5 - seed * 1.1) * Math.sin(z * 1.9 + seed * 0.7);
-      const n2 = Math.sin(x * 4.2 - z * 3.6 + seed * 2.9) * 0.25;
-      const n3 = Math.cos(y * 5.0 + x * 3.1 - seed * 2.1) * 0.14;
-      return n1 + n2 + n3;
-    }
-
-    function createRiverStone(radius = 0.82, seed = Math.random() * 100, isBase = false) {
-      const visualVertexCount = isBase ? 112 : 96;
-      const physicsVertexCount = isBase ? 34 : 28;
-
-      const scaleX = isBase ? 3.2 : (0.85 + Math.abs(Math.sin(seed * 3.1)) * 0.42);
-      const scaleY = isBase ? 0.48 : (0.48 + Math.abs(Math.cos(seed * 4.7)) * 0.24);
-      const scaleZ = isBase ? 2.4 : (0.85 + Math.abs(Math.sin(seed * 7.3)) * 0.35);
-
-      const skewX = isBase ? 0 : Math.sin(seed * 11.2) * 0.06;
-      const skewZ = isBase ? 0 : Math.cos(seed * 9.4) * 0.06;
-
-      function generateDeformedCloud(count) {
-        const pts = [];
-        const goldenRatio = (1 + Math.sqrt(5)) / 2;
-        for (let i = 0; i < count; i++) {
-          const theta = 2 * Math.PI * i / goldenRatio;
-          const phi = Math.acos(1 - 2 * (i + 0.5) / count);
-          let vx = Math.cos(theta) * Math.sin(phi);
-          let vy = Math.cos(phi);
-          let vz = Math.sin(theta) * Math.sin(phi);
-
-          const noiseVal = pseudoNoise3D(vx, vy, vz, seed);
-          const radialMod = isBase ? (1.0 + noiseVal * 0.05) : (1.0 + noiseVal * 0.13);
-
-          if (Math.abs(vy) > 0.55) {
-            const sign = Math.sign(vy);
-            vy = sign * (0.55 + (Math.abs(vy) - 0.55) * 0.38);
-          }
-
-          vx *= radius * scaleX * radialMod;
-          vy *= radius * scaleY * radialMod;
-          vz *= radius * scaleZ * radialMod;
-
-          if (!isBase) {
-            vx += vy * skewX;
-            vz += vy * skewZ;
-          }
-          pts.push(new THREE.Vector3(vx, vy, vz));
-        }
-
-        const center = new THREE.Vector3();
-        pts.forEach(p => center.add(p));
-        center.divideScalar(pts.length);
-        pts.forEach(p => p.sub(center));
-        return pts;
-      }
-
-      const visualPoints = generateDeformedCloud(visualVertexCount);
-      const visualFaces = computeConvexHullFaces(visualPoints);
-      const positions = [];
-      visualFaces.forEach(tri => {
-        const a = visualPoints[tri[0]];
-        const b = visualPoints[tri[1]];
-        const c = visualPoints[tri[2]];
-        positions.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
-      });
-
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-      geometry.computeVertexNormals();
-
-      const tones = [0xD9D6CC, 0xC8C4B8, 0xB5B0A4, 0x9E998E, 0xE2DFD5, 0xBEB9AD];
-      const baseTone = isBase ? 0x858178 : tones[Math.floor(Math.abs(Math.sin(seed * 19.1)) * tones.length)];
-
-      const material = new THREE.MeshStandardMaterial({
-        color: baseTone,
-        roughness: 0.9,
-        metalness: 0.02,
-        flatShading: true
-      });
-
-      const mesh = new THREE.Mesh(geometry, material);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-
-      const physPoints = generateDeformedCloud(physicsVertexCount);
-      const physFacesRaw = computeConvexHullFaces(physPoints);
-
-      const uniqueVerts = [];
-      const vertMap = new Map();
-      function getVertIndex(v) {
-        const key = `${v.x.toFixed(4)}_${v.y.toFixed(4)}_${v.z.toFixed(4)}`;
-        if (vertMap.has(key)) return vertMap.get(key);
-        const idx = uniqueVerts.length;
-        uniqueVerts.push(v.clone());
-        vertMap.set(key, idx);
-        return idx;
-      }
-
-      const cannonFaces = [];
-      physFacesRaw.forEach(tri => {
-        const ia = getVertIndex(physPoints[tri[0]]);
-        const ib = getVertIndex(physPoints[tri[1]]);
-        const ic = getVertIndex(physPoints[tri[2]]);
-        cannonFaces.push([ia, ib, ic]);
-      });
-
-      const cannonVertices = uniqueVerts.map(v => new CANNON.Vec3(v.x, v.y, v.z));
-      const shape = new CANNON.ConvexPolyhedron({
-        vertices: cannonVertices,
-        faces: cannonFaces
-      });
-
-      const mass = isBase ? 0 : Math.max(1.2, Math.pow(radius, 3) * 4.0);
-      const body = new CANNON.Body({
-        mass: mass,
-        material: stonePhysicsMaterial,
-        linearDamping: 0.45,
-        angularDamping: 0.55
-      });
-      body.addShape(shape);
-
-      const halfHeight = radius * scaleY * 0.72;
-      return { mesh, body, halfHeight };
-    }
-
-    function computeConvexHullFaces(points) {
-      const faces = [];
-      const n = points.length;
-      const center = new THREE.Vector3();
-      points.forEach(p => center.add(p));
-      center.divideScalar(n);
-
-      const ab = new THREE.Vector3();
-      const ac = new THREE.Vector3();
-      const normal = new THREE.Vector3();
-      const ap = new THREE.Vector3();
-
-      for (let i = 0; i < n - 2; i++) {
-        for (let j = i + 1; j < n - 1; j++) {
-          for (let k = j + 1; k < n; k++) {
-            ab.subVectors(points[j], points[i]);
-            ac.subVectors(points[k], points[i]);
-            normal.crossVectors(ab, ac);
-            if (normal.lengthSq() < 1e-8) continue;
-            normal.normalize();
-
-            let posCount = 0;
-            let negCount = 0;
-            for (let m = 0; m < n; m++) {
-              if (m === i || m === j || m === k) continue;
-              ap.subVectors(points[m], points[i]);
-              const d = normal.dot(ap);
-              if (d > 1e-4) posCount++;
-              else if (d < -1e-4) negCount++;
-              if (posCount > 0 && negCount > 0) break;
+        function toggleSound() {
+            initAudio();
+            if (isAudioPlaying) {
+                if (audioCtx && audioCtx.state === 'running') {
+                    audioCtx.suspend();
+                }
+                isAudioPlaying = false;
+                document.getElementById('sound-toggle').innerText = "소리 켜기";
+            } else {
+                if (audioCtx) {
+                    audioCtx.resume();
+                }
+                playAmbientStream();
+                isAudioPlaying = true;
+                document.getElementById('sound-toggle').innerText = "소리 끄기";
             }
-
-            if (posCount === 0 || negCount === 0) {
-              ap.subVectors(points[i], center);
-              if (normal.dot(ap) > 0) {
-                faces.push([i, j, k]);
-              } else {
-                faces.push([i, k, j]);
-              }
-            }
-          }
-        }
-      }
-      return faces;
-    }
-
-    function initScene() {
-      scene = new THREE.Scene();
-      scene.background = new THREE.Color(0xF6F5F0);
-      scene.fog = new THREE.FogExp2(0xF6F5F0, 0.028);
-
-      camera = new THREE.PerspectiveCamera(36, window.innerWidth / window.innerHeight, 0.1, 120);
-      camera.position.copy(CAM_START_POS);
-      camera.lookAt(CAM_START_LOOK);
-
-      renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      dom.canvasContainer.appendChild(renderer.domElement);
-
-      const ambientLight = new THREE.AmbientLight(0xF6F5F0, 1.45);
-      scene.add(ambientLight);
-
-      const dirLight = new THREE.DirectionalLight(0xFFFDF9, 1.3);
-      dirLight.position.set(8, 18, 12);
-      dirLight.castShadow = true;
-      dirLight.shadow.mapSize.width = 2048;
-      dirLight.shadow.mapSize.height = 2048;
-      dirLight.shadow.camera.near = 2;
-      dirLight.shadow.camera.far = 45;
-      const d = 11;
-      dirLight.shadow.camera.left = -d;
-      dirLight.shadow.camera.right = d;
-      dirLight.shadow.camera.top = d;
-      dirLight.shadow.camera.bottom = -d;
-      dirLight.shadow.bias = -0.0005;
-      scene.add(dirLight);
-
-      const subLight = new THREE.DirectionalLight(0xE5E1D7, 0.55);
-      subLight.position.set(-9, 7, -8);
-      scene.add(subLight);
-
-      world = new CANNON.World();
-      world.gravity.set(0, -9.2, 0);
-      world.allowSleep = true;
-      world.solver.iterations = 24;
-
-      stonePhysicsMaterial = new CANNON.Material('stoneMat');
-      groundPhysicsMaterial = new CANNON.Material('groundMat');
-
-      const stoneContact = new CANNON.ContactMaterial(stonePhysicsMaterial, stonePhysicsMaterial, {
-        friction: 0.88,
-        restitution: 0.005,
-        contactEquationStiffness: 1e7,
-        contactEquationRelaxation: 4
-      });
-      const groundContact = new CANNON.ContactMaterial(stonePhysicsMaterial, groundPhysicsMaterial, {
-        friction: 0.9,
-        restitution: 0.005
-      });
-      world.addContactMaterial(stoneContact);
-      world.addContactMaterial(groundContact);
-
-      const groundGeo = new THREE.PlaneGeometry(120, 120);
-      const groundMat = new THREE.MeshStandardMaterial({ color: 0xECEAE2, roughness: 0.98, metalness: 0.0 });
-      const groundMesh = new THREE.Mesh(groundGeo, groundMat);
-      groundMesh.rotation.x = -Math.PI / 2;
-      groundMesh.receiveShadow = true;
-      scene.add(groundMesh);
-
-      createDistantRiverStones();
-
-      const groundBody = new CANNON.Body({
-        mass: 0,
-        material: groundPhysicsMaterial,
-        shape: new CANNON.Plane()
-      });
-      groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
-      world.addBody(groundBody);
-
-      const lineGeo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(0, 12, 0)
-      ]);
-      const lineMat = new THREE.LineBasicMaterial({ color: 0x7A766E, transparent: true, opacity: 0.22 });
-      alignmentLaser = new THREE.Line(lineGeo, lineMat);
-      alignmentLaser.visible = false;
-      scene.add(alignmentLaser);
-
-      const ringGeo = new THREE.RingGeometry(0.15, 0.19, 32);
-      const ringMat = new THREE.MeshBasicMaterial({ color: 0x7A766E, side: THREE.DoubleSide, transparent: true, opacity: 0.28 });
-      shadowRing = new THREE.Mesh(ringGeo, ringMat);
-      shadowRing.rotation.x = -Math.PI / 2;
-      shadowRing.position.y = 0.02;
-      shadowRing.visible = false;
-      scene.add(shadowRing);
-
-      initSilhouetteRenderer();
-      resetStonesAndBase();
-    }
-
-    function createDistantRiverStones() {
-      const sceneryGroup = new THREE.Group();
-      for (let i = 0; i < 14; i++) {
-        const angle = (i / 14) * Math.PI * 1.2 - Math.PI * 0.1;
-        const dist = 11 + Math.random() * 14;
-        const x = Math.cos(angle) * dist;
-        const z = -Math.abs(Math.sin(angle) * dist) - 5;
-        const s = createRiverStone(0.7 + Math.random() * 0.9, i * 17.3, false);
-        s.mesh.position.set(x, 0.12, z);
-        s.mesh.rotation.set(0, Math.random() * Math.PI, 0);
-        sceneryGroup.add(s.mesh);
-      }
-      scene.add(sceneryGroup);
-    }
-
-    function initSilhouetteRenderer() {
-      silRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
-      silRenderer.setSize(SILHOUETTE_SIZE, SILHOUETTE_SIZE);
-      silCamera = new THREE.PerspectiveCamera(34, 1, 0.1, 60);
-      silCanvas2D = document.createElement('canvas');
-      silCanvas2D.width = SILHOUETTE_SIZE;
-      silCanvas2D.height = SILHOUETTE_SIZE;
-    }
-
-    function resetStonesAndBase() {
-      stones.forEach(s => {
-        scene.remove(s.mesh);
-        world.removeBody(s.body);
-      });
-      stones = [];
-      draggedStone = null;
-      state.stabilizingCandidate = null;
-      state.stabilizeTimer = 0;
-      state.replenishRemaining = 3;
-      updateReplenishButtonUI();
-      dom.stabilityBar.style.width = '0%';
-
-      const baseObj = createRiverStone(1.12, 42.42, true);
-      baseObj.body.position.set(0, 0.24, 0);
-      baseObj.mesh.position.copy(baseObj.body.position);
-      scene.add(baseObj.mesh);
-      world.addBody(baseObj.body);
-
-      baseStone = {
-        id: 'BASE',
-        mesh: baseObj.mesh,
-        body: baseObj.body,
-        isBase: true,
-        isStabilized: true,
-        everReachedTower: true,
-        settledY: 0.24,
-        halfHeight: baseObj.halfHeight
-      };
-      stones.push(baseStone);
-
-      spawnSafeSideStones(12);
-      capture2DSilhouetteSnapshot();
-    }
-
-    // 새로운 돌은 중앙 탑을 건드리지 않도록 화면 양쪽 측면(안전 지대)에 스폰
-    function spawnSafeSideStones(count = 6) {
-      for (let i = 0; i < count; i++) {
-        const side = (i % 2 === 0) ? 1 : -1;
-        const x = side * (4.2 + Math.random() * 2.2);
-        const z = 1.2 + Math.random() * 2.2;
-        const y = 0.65 + Math.random() * 0.4;
-
-        const radius = 0.54 + Math.random() * 0.36;
-        const seed = Date.now() * 0.001 + i * 23.17 + Math.random() * 50;
-        const stoneObj = createRiverStone(radius, seed, false);
-
-        stoneObj.body.position.set(x, y, z);
-        stoneObj.body.quaternion.setFromEuler(
-          (Math.random() - 0.5) * 0.2,
-          Math.random() * Math.PI,
-          (Math.random() - 0.5) * 0.2
-        );
-        stoneObj.mesh.position.copy(stoneObj.body.position);
-        stoneObj.mesh.quaternion.copy(stoneObj.body.quaternion);
-
-        scene.add(stoneObj.mesh);
-        world.addBody(stoneObj.body);
-
-        stones.push({
-          id: `STONE_${Date.now()}_${i}`,
-          mesh: stoneObj.mesh,
-          body: stoneObj.body,
-          isBase: false,
-          isStabilized: false,
-          everReachedTower: false,
-          settledY: y,
-          halfHeight: stoneObj.halfHeight
-        });
-      }
-    }
-
-    function updateReplenishButtonUI() {
-      dom.hudReplenishBtn.textContent = `돌 더 가져오기 (${state.replenishRemaining})`;
-      dom.hudReplenishBtn.disabled = state.replenishRemaining <= 0;
-    }
-
-    function capture2DSilhouetteSnapshot() {
-      if (!silRenderer) return;
-
-      const silScene = new THREE.Scene();
-      const inkMat = new THREE.MeshBasicMaterial({ color: 0x43413C });
-
-      let maxY = 1.6;
-      stones.forEach(s => {
-        const isOnTower = s.isBase || s.isStabilized || s.everReachedTower || (Math.abs(s.body.position.x) < 2.5 && Math.abs(s.body.position.z) < 1.2 && s.body.position.y > 0.38);
-        if (isOnTower && s !== draggedStone) {
-          const cloneMesh = new THREE.Mesh(s.mesh.geometry, inkMat);
-          cloneMesh.position.copy(s.mesh.position);
-          cloneMesh.quaternion.copy(s.mesh.quaternion);
-          cloneMesh.scale.copy(s.mesh.scale);
-          silScene.add(cloneMesh);
-          if (s.mesh.position.y + s.halfHeight > maxY) {
-            maxY = s.mesh.position.y + s.halfHeight;
-          }
-        }
-      });
-
-      const groundLineGeo = new THREE.BoxGeometry(6.2, 0.028, 0.028);
-      const groundLineMesh = new THREE.Mesh(groundLineGeo, inkMat);
-      groundLineMesh.position.set(0, 0.02, 0);
-      silScene.add(groundLineMesh);
-
-      const centerY = Math.max(1.2, (maxY + 0.5) * 0.48);
-      const dist = Math.max(7.6, (maxY + 2.4) * 2.05);
-      silCamera.position.set(0, centerY + 0.25, dist);
-      silCamera.lookAt(0, centerY, 0);
-
-      silRenderer.setClearColor(0xFCFAF5, 0);
-      silRenderer.clear();
-      silRenderer.render(silScene, silCamera);
-
-      const ctx = silCanvas2D.getContext('2d');
-      ctx.clearRect(0, 0, SILHOUETTE_SIZE, SILHOUETTE_SIZE);
-      ctx.drawImage(silRenderer.domElement, 0, 0);
-
-      const imgData = ctx.getImageData(0, 0, SILHOUETTE_SIZE, SILHOUETTE_SIZE);
-      const data = imgData.data;
-
-      for (let i = 0; i < data.length; i += 4) {
-        const alpha = data[i + 3];
-        if (alpha > 28) {
-          data[i] = 67;
-          data[i + 1] = 65;
-          data[i + 2] = 60;
-          data[i + 3] = alpha > 140 ? 245 : Math.min(245, alpha * 1.8);
-        } else {
-          data[i + 3] = 0;
-        }
-      }
-      ctx.putImageData(imgData, 0, 0);
-
-      state.lastSilhouetteDataURL = silCanvas2D.toDataURL('image/png');
-      updateProfileSilhouetteThumbnail();
-    }
-
-    function updateProfileSilhouetteThumbnail() {
-      if (!state.lastSilhouetteDataURL) return;
-      dom.myProfileSilhouette.innerHTML = `<img src="${state.lastSilhouetteDataURL}" class="w-full h-full object-contain p-1" />`;
-    }
-
-    function updatePointer(e) {
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      pointer.x = (clientX / window.innerWidth) * 2 - 1;
-      pointer.y = -(clientY / window.innerHeight) * 2 + 1;
-    }
-
-    function onPointerDown(e) {
-      if (state.phase !== 'PLAYING') return;
-      if (e.target.closest('#game-hud')) return;
-
-      updatePointer(e);
-      raycaster.setFromCamera(pointer, camera);
-
-      const pickableMeshes = stones
-        .filter(s => !s.isBase && !s.isStabilized)
-        .map(s => s.mesh);
-
-      const intersects = raycaster.intersectObjects(pickableMeshes, false);
-      if (intersects.length > 0) {
-        const hitMesh = intersects[0].object;
-        const stoneObj = stones.find(s => s.mesh === hitMesh);
-        if (!stoneObj) return;
-
-        draggedStone = stoneObj;
-        if (state.stabilizingCandidate === draggedStone) {
-          state.stabilizingCandidate = null;
-          state.stabilizeTimer = 0;
-          dom.stabilityBar.style.width = '0%';
         }
 
-        draggedStone.body.wakeUp();
-        heldEuler.setFromQuaternion(draggedStone.mesh.quaternion, 'YXZ');
-        heldEuler.x *= 0.25;
-        heldEuler.z *= 0.35;
-
-        dragPlane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 0, 1), new THREE.Vector3(0, 2, 0));
-
-        if (raycaster.ray.intersectPlane(dragPlane, dragIntersectPoint)) {
-          targetDragPos.set(
-            THREE.MathUtils.clamp(dragIntersectPoint.x, -4.5, 4.5),
-            Math.max(0.85, dragIntersectPoint.y),
-            0
-          );
+        function playAmbientStream() {
+            if (!audioCtx) return;
+            // 펜타토닉 음계 (잔잔한 싱잉볼/명상 사운드)
+            const notes = [130.81, 146.83, 164.81, 196.00, 220.00, 261.63, 293.66];
+            
+            if (audioInterval) clearInterval(audioInterval);
+            audioInterval = setInterval(() => {
+                if (!isAudioPlaying) return;
+                try {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    
+                    const freq = notes[Math.floor(Math.random() * notes.length)];
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                    
+                    gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.04, audioCtx.currentTime + 2);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 7);
+                    
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 7.5);
+                } catch(e) {}
+            }, 3500);
         }
 
-        alignmentLaser.visible = true;
-        shadowRing.visible = true;
-        dom.hudStatusText.textContent = '마우스 휠을 굴려 돌의 기울기를 맞출 수 있습니다';
-      }
-    }
-
-    function onPointerMove(e) {
-      if (!draggedStone || state.phase !== 'PLAYING') return;
-      updatePointer(e);
-      raycaster.setFromCamera(pointer, camera);
-
-      if (raycaster.ray.intersectPlane(dragPlane, dragIntersectPoint)) {
-        const localTopY = getLocalStackHeightAtX(dragIntersectPoint.x, draggedStone);
-        const minSafeY = Math.max(0.55, localTopY + draggedStone.halfHeight + 0.08);
-
-        targetDragPos.set(
-          THREE.MathUtils.clamp(dragIntersectPoint.x, -4.5, 4.5),
-          THREE.MathUtils.clamp(dragIntersectPoint.y, minSafeY, 9.5),
-          0
-        );
-      }
-    }
-
-    function onPointerUp() {
-      if (!draggedStone) return;
-
-      draggedStone.body.velocity.set(0, -0.08, 0);
-      draggedStone.body.angularVelocity.set(0, 0, 0);
-      draggedStone.body.wakeUp();
-
-      if (Math.abs(draggedStone.body.position.x) < 2.35 && draggedStone.body.position.y > 0.36) {
-        state.stabilizingCandidate = draggedStone;
-        state.stabilizeTimer = 0;
-        dom.hudStatusText.textContent = '돌이 고요히 자리 잡기를 기다리는 중...';
-      } else {
-        dom.hudStatusText.textContent = '돌을 마우스로 끌어 올려보세요';
-      }
-
-      draggedStone = null;
-      alignmentLaser.visible = false;
-      shadowRing.visible = false;
-    }
-
-    function getLocalStackHeightAtX(xPos, ignoreStone) {
-      let highest = 0.35;
-      stones.forEach(s => {
-        if (s === ignoreStone) return;
-        if (s.isBase || s.isStabilized || s.everReachedTower) {
-          const dx = Math.abs(s.body.position.x - xPos);
-          const xReach = s.isBase ? 1.85 : 0.72;
-          if (dx < xReach) {
-            const topY = s.body.position.y + (s.halfHeight || 0.32);
-            if (topY > highest) highest = topY;
-          }
-        }
-      });
-      return highest;
-    }
-
-    function onWheel(e) {
-      if (!draggedStone || state.phase !== 'PLAYING') return;
-      e.preventDefault();
-      const delta = Math.sign(e.deltaY) * 0.065;
-      heldEuler.z += delta;
-    }
-
-    // 메인 돌 위에 올라간 돌 개수만 정확히 계산
-    function recalculateTowerMetrics() {
-      const stabilizedStones = stones.filter(s => s.isStabilized && !s.isBase);
-      state.stackedCount = stabilizedStones.length;
-
-      let highestPoint = 0.45;
-      stabilizedStones.forEach(s => {
-        const top = s.body.position.y + (s.halfHeight || 0.35);
-        if (top > highestPoint) highestPoint = top;
-      });
-
-      const heightCm = Math.max(0, (highestPoint - 0.45) * 18.5);
-      state.maxHeightCm = Math.max(state.maxHeightCm, heightCm);
-
-      dom.hudStones.textContent = String(state.stackedCount);
-      dom.hudHeight.textContent = heightCm.toFixed(1);
-    }
-
-    function evaluateCairnPhysics(dt) {
-      if (state.phase !== 'PLAYING') return;
-
-      if (draggedStone) {
-        const curPos = draggedStone.body.position;
-        const stiffness = 22; // 드래그 반응 속도 대폭 향상
-        draggedStone.body.velocity.set(
-          (targetDragPos.x - curPos.x) * stiffness,
-          (targetDragPos.y - curPos.y) * stiffness,
-          (targetDragPos.z - curPos.z) * stiffness
-        );
-
-        const targetQuat = new THREE.Quaternion().setFromEuler(heldEuler);
-        draggedStone.body.quaternion.set(targetQuat.x, targetQuat.y, targetQuat.z, targetQuat.w);
-        draggedStone.body.angularVelocity.set(0, 0, 0);
-
-        alignmentLaser.position.set(curPos.x, 0, curPos.z);
-        shadowRing.position.set(curPos.x, 0.02, curPos.z);
-      }
-
-      for (const s of stones) {
-        if (!s.isBase) {
-          // 메인 돌 위에 한 번이라도 올라갔던 돌인지 판정
-          if (!s.everReachedTower) {
-            if (s.body.position.y > 0.42 && Math.abs(s.body.position.x) < 2.05) {
-              s.everReachedTower = true;
-            }
-          } else {
-            // 한 번이라도 올라갔던 돌이 바닥으로 떨어지면 패배 (게임오버)
-            const yDrop = s.settledY - s.body.position.y;
-            const isOnFloorOutsideBase = (s.body.position.y < 0.36 && Math.abs(s.body.position.x) > 1.95);
-            if ((yDrop > 0.65 && s.body.position.y < 0.42) || isOnFloorOutsideBase) {
-              triggerSessionEnd('메인 돌 위에 있던 돌이 떨어졌습니다');
-              return;
-            }
-          }
-        }
-
-        if (s.isStabilized && !s.isBase) {
-          s.body.angularVelocity.scale(0.88, s.body.angularVelocity);
-          s.body.velocity.x *= 0.92;
-          s.body.velocity.z *= 0.9;
-        }
-      }
-
-      if (state.stabilizingCandidate && !draggedStone) {
-        const cand = state.stabilizingCandidate;
-        const speed = cand.body.velocity.length() + cand.body.angularVelocity.length() * 0.6;
-        const radialX = Math.abs(cand.body.position.x);
-
-        if (cand.body.position.y < 0.35 && radialX > 2.05) {
-          state.stabilizingCandidate = null;
-          state.stabilizeTimer = 0;
-          dom.stabilityBar.style.width = '0%';
-          if (cand.everReachedTower) {
-            triggerSessionEnd('올려놓은 돌이 굴러떨어졌습니다');
-          } else {
-            dom.hudStatusText.textContent = '받침석 위로 돌을 다시 올려보세요';
-          }
-          return;
-        }
-
-        if (speed < 0.55) {
-          cand.body.angularVelocity.scale(0.85, cand.body.angularVelocity);
-        }
-
-        const REQUIRED_STABLE_TIME = 1.8;
-        if (speed < 0.28 && cand.body.position.y >= 0.36 && radialX <= 2.35) {
-          state.stabilizeTimer += dt;
-          const pct = Math.min(100, (state.stabilizeTimer / REQUIRED_STABLE_TIME) * 100);
-          dom.stabilityBar.style.width = `${pct}%`;
-
-          if (state.stabilizeTimer >= REQUIRED_STABLE_TIME) {
-            cand.isStabilized = true;
-            cand.everReachedTower = true;
-            cand.settledY = cand.body.position.y;
-            cand.body.velocity.set(0, 0, 0);
-            cand.body.angularVelocity.set(0, 0, 0);
-
-            state.stabilizingCandidate = null;
-            state.stabilizeTimer = 0;
-            dom.stabilityBar.style.width = '0%';
-
-            state.countdownSeconds = 180.0;
-            recalculateTowerMetrics();
-            soundscape.playStoneSettleChime();
-            dom.hudStatusText.textContent = '돌이 고요히 자리를 잡았습니다';
-
-            capture2DSilhouetteSnapshot();
-          }
-        } else {
-          state.stabilizeTimer = Math.max(0, state.stabilizeTimer - dt * 0.4);
-          const pct = Math.min(100, (state.stabilizeTimer / REQUIRED_STABLE_TIME) * 100);
-          dom.stabilityBar.style.width = `${pct}%`;
-        }
-      }
-    }
-
-    function formatKoreanTimestamp(date) {
-      if (!date) return '—';
-      const pad = n => String(n).padStart(2, '0');
-      return `${date.getFullYear()}.${pad(date.getMonth() + 1)}.${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-    }
-
-    function formatKoreanDuration(totalSec) {
-      const mins = Math.floor(totalSec / 60);
-      const secs = Math.floor(totalSec % 60);
-      if (mins === 0) return `${secs}초`;
-      return `${mins}분 ${secs}초`;
-    }
-
-    function updateTimers(dt) {
-      if (state.phase !== 'PLAYING') return;
-
-      state.elapsedSeconds += dt;
-      state.countdownSeconds = Math.max(0, state.countdownSeconds - dt);
-
-      const cMin = Math.floor(state.countdownSeconds / 60);
-      const cSec = Math.floor(state.countdownSeconds % 60);
-      dom.hudCountdown.textContent = `${String(cMin).padStart(2, '0')}:${String(cSec).padStart(2, '0')}`;
-
-      if (state.countdownSeconds <= 30) {
-        dom.hudCountdown.style.color = '#8C5843';
-      } else {
-        dom.hudCountdown.style.color = '#3F3D39';
-      }
-
-      if (state.countdownSeconds <= 0) {
-        triggerSessionEnd('세 분의 시간이 모두 흘렀습니다');
-      }
-    }
-
-    function startIntroCameraDescent(nickname) {
-      state.nickname = nickname.trim();
-      state.phase = 'CAMERA_INTRO';
-      camAnimStartTime = performance.now();
-
-      soundscape.initAndPlay();
-
-      dom.introOverlay.classList.add('opacity-0', 'invisible');
-      dom.archiveNickname.value = state.nickname;
-    }
-
-    function beginPlayingSession() {
-      state.phase = 'PLAYING';
-      state.startedAt = new Date();
-      state.finishedAt = null;
-      state.elapsedSeconds = 0;
-      state.countdownSeconds = 180.0;
-      state.stackedCount = 0;
-      state.maxHeightCm = 0.0;
-
-      dom.hudStones.textContent = '0';
-      dom.hudHeight.textContent = '0.0';
-      dom.hudStatusText.textContent = '돌을 마우스로 끌어 올려보세요';
-      dom.gameHud.classList.remove('opacity-0', 'invisible');
-    }
-
-    function triggerSessionEnd(reasonText) {
-      if (state.phase === 'ENDED') return;
-      state.phase = 'ENDED';
-      draggedStone = null;
-      alignmentLaser.visible = false;
-      shadowRing.visible = false;
-
-      state.finishedAt = new Date();
-      state.endReason = reasonText;
-
-      recalculateTowerMetrics();
-      if (!state.lastSilhouetteDataURL) {
-        capture2DSilhouetteSnapshot();
-      }
-
-      dom.silhouettePreviewImg.src = state.lastSilhouetteDataURL;
-      dom.resultReasonBadge.textContent = reasonText;
-      dom.resultStones.textContent = `${state.stackedCount}개`;
-      dom.resultHeight.textContent = `${state.maxHeightCm.toFixed(1)}cm`;
-      dom.resultBuilder.textContent = state.nickname;
-      dom.resultStarted.textContent = formatKoreanTimestamp(state.startedAt);
-      dom.resultFinished.textContent = formatKoreanTimestamp(state.finishedAt);
-      dom.resultDuration.textContent = formatKoreanDuration(state.elapsedSeconds);
-      dom.archiveStoneBadge.textContent = `${state.stackedCount}개 · ${state.maxHeightCm.toFixed(1)}cm`;
-
-      dom.resultModal.classList.remove('opacity-0', 'invisible');
-    }
-
-    function exportHighResPosterPNG() {
-      const exportCanvas = document.createElement('canvas');
-      const SIZE = 1080;
-      exportCanvas.width = SIZE;
-      exportCanvas.height = SIZE;
-      const ctx = exportCanvas.getContext('2d');
-
-      ctx.fillStyle = '#FCFAF5';
-      ctx.fillRect(0, 0, SIZE, SIZE);
-
-      const M = 76;
-      ctx.strokeStyle = '#E2DFD7';
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(M, M, SIZE - M * 2, SIZE - M * 2);
-
-      const silImg = new Image();
-      silImg.onload = () => {
-        const silBoxSize = 740;
-        const silX = (SIZE - silBoxSize) / 2;
-        const silY = (SIZE - silBoxSize) / 2 + 10;
-        ctx.drawImage(silImg, silX, silY, silBoxSize, silBoxSize);
-
-        ctx.fillStyle = '#9E9A90';
-        ctx.font = '300 20px "Noto Sans KR", sans-serif';
-        ctx.fillText(state.endReason, M + 36, M + 58);
-
-        ctx.fillStyle = '#3F3D39';
-        ctx.font = '400 36px "Nanum Myeongjo", serif';
-        ctx.fillText('강가의 돌탑', M + 36, M + 106);
-
-        ctx.textAlign = 'right';
-        ctx.fillStyle = '#9E9A90';
-        ctx.font = '300 18px "Noto Sans KR", sans-serif';
-        ctx.fillText('쌓은 돌과 높이', SIZE - M - 36, M + 58);
-
-        ctx.fillStyle = '#3F3D39';
-        ctx.font = '400 34px "Noto Sans KR", sans-serif';
-        ctx.fillText(`${state.stackedCount}개 · ${state.maxHeightCm.toFixed(1)}cm`, SIZE - M - 36, M + 106);
-        ctx.textAlign = 'left';
-
-        ctx.strokeStyle = '#E2DFD7';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(M + 36, M + 134);
-        ctx.lineTo(SIZE - M - 36, M + 134);
-        ctx.stroke();
-
-        const bottomY = SIZE - M - 115;
-        ctx.fillStyle = 'rgba(252, 250, 245, 0.88)';
-        ctx.fillRect(M + 20, bottomY, SIZE - (M + 20) * 2, 105);
-
-        ctx.strokeStyle = '#E2DFD7';
-        ctx.beginPath();
-        ctx.moveTo(M + 36, bottomY);
-        ctx.lineTo(SIZE - M - 36, bottomY);
-        ctx.stroke();
-
-        const cols = [
-          { label: '쌓은 이', value: state.nickname || '이름 없음', x: M + 36 },
-          { label: '시작한 시각', value: formatKoreanTimestamp(state.startedAt), x: M + 250 },
-          { label: '마친 시각', value: formatKoreanTimestamp(state.finishedAt), x: M + 520 },
-          { label: '머문 시간', value: formatKoreanDuration(state.elapsedSeconds), x: M + 780 }
-        ];
-
-        cols.forEach(col => {
-          ctx.fillStyle = '#9E9A90';
-          ctx.font = '300 17px "Noto Sans KR", sans-serif';
-          ctx.fillText(col.label, col.x, bottomY + 42);
-
-          ctx.fillStyle = '#3F3D39';
-          ctx.font = '400 20px "Noto Sans KR", sans-serif';
-          ctx.fillText(col.value, col.x, bottomY + 76);
+        // --- 초기화 및 실행 ---
+        window.addEventListener('load', () => {
+            initThreeAndPhysics();
+            setupEvents();
+            renderGuestbook();
+            generateQRCodes();
         });
 
-        const dataUrl = exportCanvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        const safeName = (state.nickname || '기록').replace(/[^a-zA-Z0-9가-힣_-]/g, '_');
-        link.download = `돌탑_${safeName}_${state.stackedCount}개.png`;
-        link.href = dataUrl;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      };
-      silImg.src = state.lastSilhouetteDataURL;
-    }
+        function initThreeAndPhysics() {
+            const container = document.getElementById('canvas-container');
 
-    const STORAGE_KEY = 'CAIRN_KR_ARCHIVE_V3';
+            // 1. Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xF6F5F0);
+            scene.fog = new THREE.FogExp2(0xF6F5F0, 0.012);
 
-    const INITIAL_NOTES = [
-      {
-        id: 'KR_01',
-        nickname: '윤슬',
-        stones: 8,
-        heightCm: '24.2',
-        text: '비대칭의 돌들이 서로의 모서리에 기대어 서 있는 모습이 조용한 위로가 되었습니다.',
-        timestamp: '2026.02.18 16:40',
-        silhouette: null
-      },
-      {
-        id: 'KR_02',
-        nickname: '강가의 산책자',
-        stones: 6,
-        heightCm: '19.5',
-        text: '밑단을 넓게 받쳐 천천히 올리니 마음이 한결 차분해집니다. 물소리가 참 좋네요.',
-        timestamp: '2026.02.21 21:04',
-        silhouette: null
-      }
-    ];
+            // 2. Camera
+            camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 5, 14);
 
-    function loadArchiveNotes() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_NOTES));
-          return [...INITIAL_NOTES];
-        }
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [...INITIAL_NOTES];
-      } catch (e) {
-        return [...INITIAL_NOTES];
-      }
-    }
+            // 3. Renderer (최적화 설정)
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
 
-    function appendArchiveNote(nickname, stonesCount, heightCm, rawText) {
-      const cleanText = Array.from(rawText.trim()).slice(0, 77).join('');
-      if (!cleanText) return false;
+            // 4. OrbitControls (메인돌 주변을 둘러가며 볼 수 있도록 세팅)
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 - 0.02; // 바닥 밑으로 내려가지 않음
+            controls.minDistance = 6;
+            controls.maxDistance = 25;
+            controls.target.set(0, 1.5, 0);
 
-      const existing = loadArchiveNotes();
-      const newEntry = Object.freeze({
-        id: `NOTE_${Date.now()}`,
-        nickname: (nickname || '이름 없음').trim(),
-        stones: Number(stonesCount) || 0,
-        heightCm: Number(heightCm || 0).toFixed(1),
-        text: cleanText,
-        timestamp: formatKoreanTimestamp(new Date()),
-        silhouette: state.lastSilhouetteDataURL
-      });
+            // 5. Physics World (최적화된 물리 설정)
+            world = new CANNON.World();
+            world.gravity.set(0, -9.82, 0);
+            world.broadphase = new CANNON.NaiveBroadphase();
+            world.solver.iterations = 10;
 
-      const updated = [newEntry, ...existing];
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      } catch (e) {}
-      renderArchiveNotesList(updated);
-      return true;
-    }
+            // 6. Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+            scene.add(ambientLight);
 
-    function renderArchiveNotesList(notes = loadArchiveNotes()) {
-      dom.archiveTotalCount.textContent = `모두 ${notes.length}편`;
-      dom.archiveList.innerHTML = '';
+            const dirLight = new THREE.DirectionalLight(0xfff8ee, 0.8);
+            dirLight.position.set(10, 20, 15);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 1024;
+            dirLight.shadow.mapSize.height = 1024;
+            dirLight.shadow.camera.near = 0.5;
+            dirLight.shadow.camera.far = 40;
+            const d = 10;
+            dirLight.shadow.camera.left = -d;
+            dirLight.shadow.camera.right = d;
+            dirLight.shadow.camera.top = d;
+            dirLight.shadow.camera.bottom = -d;
+            scene.add(dirLight);
 
-      notes.forEach(item => {
-        const row = document.createElement('article');
-        row.className = 'py-5 flex flex-col sm:flex-row sm:items-baseline justify-between gap-3';
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0xd0c8b8, 0.4);
+            scene.add(hemiLight);
 
-        const leftWrapper = document.createElement('div');
-        leftWrapper.className = 'flex items-start space-x-4 max-w-xl';
+            // 7. Ground (강가 바닥)
+            const groundGeo = new THREE.PlaneGeometry(100, 100);
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0xEEECE3, roughness: 0.9 });
+            const groundMesh = new THREE.Mesh(groundGeo, groundMat);
+            groundMesh.rotation.x = -Math.PI / 2;
+            groundMesh.receiveShadow = true;
+            scene.add(groundMesh);
 
-        // 후기 남기는 곳 프로필에 자신이 쌓은 돌 2D 실루엣 아이콘 연동
-        const profileIcon = document.createElement('div');
-        profileIcon.className = 'w-10 h-10 bg-[#ECEAE2] border border-[#E2DFD7] flex items-center justify-center shrink-0 overflow-hidden';
-        if (item.silhouette) {
-          const img = document.createElement('img');
-          img.src = item.silhouette;
-          img.className = 'w-full h-full object-contain p-0.5';
-          profileIcon.appendChild(img);
-        } else {
-          const span = document.createElement('span');
-          span.className = 'text-[10px] text-[#9E9A90]';
-          span.textContent = '탑';
-          profileIcon.appendChild(span);
-        }
+            const groundBody = new CANNON.Body({
+                mass: 0,
+                shape: new CANNON.Plane()
+            });
+            groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+            world.addBody(groundBody);
 
-        const infoWrap = document.createElement('div');
-        infoWrap.className = 'space-y-1';
+            // 8. Main Stone (중앙 받침석 - 안정적인 큰 바위)
+            const mainGeo = new THREE.DodecahedronGeometry(1.2, 1);
+            const mainMat = new THREE.MeshStandardMaterial({ color: 0x6E6A60, roughness: 0.85, flatShading: true });
+            mainStoneMesh = new THREE.Mesh(mainGeo, mainMat);
+            mainStoneMesh.position.set(0, 0.8, 0);
+            mainStoneMesh.castShadow = true;
+            mainStoneMesh.receiveShadow = true;
+            scene.add(mainStoneMesh);
 
-        const metaLine = document.createElement('div');
-        metaLine.className = 'flex items-center space-x-3 text-xs';
+            const mainShape = new CANNON.Sphere(1.1);
+            mainStoneBody = new CANNON.Body({
+                mass: 0, // 고정석
+                position: new CANNON.Vec3(0, 0.8, 0)
+            });
+            mainStoneBody.addShape(mainShape);
+            world.addBody(mainStoneBody);
 
-        const nameSpan = document.createElement('span');
-        nameSpan.className = 'text-[#3F3D39] font-normal';
-        nameSpan.textContent = item.nickname;
+            // Raycaster & Mouse
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
 
-        const recordSpan = document.createElement('span');
-        recordSpan.className = 'text-[#9E9A90] tabular-nums';
-        recordSpan.textContent = `${item.stones}개 · ${item.heightCm || '0.0'}cm`;
+            // 첫 번째 돌 생성 (안전한 측면 스폰)
+            spawnNewStone();
 
-        metaLine.append(nameSpan, recordSpan);
-
-        const bodyText = document.createElement('p');
-        bodyText.className = 'text-sm text-[#4A4843] font-light leading-relaxed break-words pt-0.5';
-        bodyText.textContent = item.text;
-
-        infoWrap.append(metaLine, bodyText);
-        leftWrapper.append(profileIcon, infoWrap);
-
-        const dateCol = document.createElement('span');
-        dateCol.className = 'text-[11px] tabular-nums text-[#9E9A90] shrink-0';
-        dateCol.textContent = item.timestamp;
-
-        row.append(leftWrapper, dateCol);
-        dom.archiveList.appendChild(row);
-      });
-    }
-
-    function easeInOutCubic(t) {
-      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-    }
-
-    let lastFrameTime = performance.now();
-
-    function animate(now) {
-      requestAnimationFrame(animate);
-
-      const dt = Math.min((now - lastFrameTime) / 1000, 0.1);
-      lastFrameTime = now;
-
-      if (state.phase === 'CAMERA_INTRO') {
-        const elapsed = now - camAnimStartTime;
-        const progress = Math.min(1, elapsed / CAM_ANIM_DURATION);
-        const eased = easeInOutCubic(progress);
-
-        camera.position.lerpVectors(CAM_START_POS, CAM_FINAL_POS, eased);
-        const currentLook = new THREE.Vector3().lerpVectors(CAM_START_LOOK, CAM_FINAL_LOOK, eased);
-        camera.lookAt(currentLook);
-
-        if (progress >= 1) {
-          camera.position.copy(CAM_FINAL_POS);
-          camera.lookAt(CAM_FINAL_LOOK);
-          beginPlayingSession();
-        }
-      }
-
-      if (state.phase === 'PLAYING' || state.phase === 'ENDED') {
-        world.step(1 / 60, dt, 3);
-
-        for (const s of stones) {
-          s.mesh.position.copy(s.body.position);
-          s.mesh.quaternion.copy(s.body.quaternion);
+            // 애니메이션 루프
+            animate();
         }
 
-        if (state.phase === 'PLAYING') {
-          evaluateCairnPhysics(dt);
-          updateTimers(dt);
+        // --- 절차적 불규칙 강돌 생성 (폴리곤 2배 증가 및 부드러운 형태) ---
+        function createProceduralStoneGeometry(radius = 0.8) {
+            // 디테일(detail)을 높여 폴리곤 2배 증가 (Icosahedron detail 1 -> 2)
+            const geometry = new THREE.IcosahedronGeometry(radius, 2);
+            const positionAttribute = geometry.attributes.position;
+            
+            for (let i = 0; i < positionAttribute.count; i++) {
+                let x = positionAttribute.getX(i);
+                let y = positionAttribute.getY(i);
+                let z = positionAttribute.getZ(i);
+
+                // 노이즈 및 비대칭 변형 적용
+                const length = Math.sqrt(x*x + y*y + z*z);
+                const noise = 0.85 + Math.sin(x * 3) * Math.cos(y * 3) * 0.25;
+                
+                // 납작하고 자연스러운 강돌 형태 유지
+                positionAttribute.setXYZ(i, x * noise * 1.2, y * noise * 0.75, z * noise * 1.1);
+            }
+            geometry.computeVertexNormals();
+            return geometry;
         }
-      }
 
-      renderer.render(scene, camera);
-    }
+        function createStoneBodyAndMesh(x, y, z, mass = 3) {
+            const radius = 0.65 + Math.random() * 0.2;
+            const geometry = createProceduralStoneGeometry(radius);
+            const color = stoneColors[Math.floor(Math.random() * stoneColors.length)];
+            const material = new THREE.MeshStandardMaterial({ 
+                color: color, 
+                roughness: 0.8, 
+                metalness: 0.1,
+                flatShading: true 
+            });
 
-    function bindEvents() {
-      window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            mesh.position.set(x, y, z);
+            scene.add(mesh);
 
-      const canvasEl = renderer.domElement;
-      canvasEl.addEventListener('mousedown', onPointerDown);
-      window.addEventListener('mousemove', onPointerMove);
-      window.addEventListener('mouseup', onPointerUp);
+            // Cannon physics shape (Sphere 혹은 Box 근사치로 안정성 확보)
+            const shape = new CANNON.Sphere(radius * 0.85);
+            const body = new CANNON.Body({
+                mass: mass,
+                position: new CANNON.Vec3(x, y, z),
+                linearDamping: 0.4,
+                angularDamping: 0.4
+            });
+            body.addShape(shape);
+            world.addBody(body);
 
-      canvasEl.addEventListener('touchstart', onPointerDown, { passive: false });
-      window.addEventListener('touchmove', onPointerMove, { passive: false });
-      window.addEventListener('touchend', onPointerUp);
+            physicsBodies.push(body);
+            renderMeshes.push(mesh);
 
-      window.addEventListener('wheel', onWheel, { passive: false });
-
-      dom.introForm.addEventListener('submit', e => {
-        e.preventDefault();
-        const val = dom.nicknameInput.value.trim();
-        if (!val) {
-          dom.nicknameError.classList.remove('hidden');
-          return;
+            return { body, mesh };
         }
-        dom.nicknameError.classList.add('hidden');
-        startIntroCameraDescent(val);
-      });
 
-      dom.introArchiveBtn.addEventListener('click', () => {
-        const val = dom.nicknameInput.value.trim() || '방문자';
-        state.nickname = val;
-        dom.archiveNickname.value = val;
-        renderArchiveNotesList();
-        dom.archivePage.classList.remove('opacity-0', 'invisible');
-      });
-
-      dom.bgmToggleBtn.addEventListener('click', () => {
-        const muted = soundscape.toggleMute();
-        dom.bgmToggleBtn.textContent = muted ? '소리 꺼짐' : '소리 켜짐';
-      });
-
-      dom.hudFinishBtn.addEventListener('click', () => {
-        if (state.phase !== 'PLAYING') return;
-        if (state.stabilizingCandidate && state.stabilizingCandidate.body.position.y > 0.38) {
-          state.stabilizingCandidate.isStabilized = true;
-          state.stabilizingCandidate.everReachedTower = true;
-          state.stabilizingCandidate = null;
+        // --- 새로운 돌 스폰 (탑을 건드리지 않도록 측면 안전지대에서 생성) ---
+        function spawnNewStone() {
+            if (isGameOver) return;
+            // 탑에서 멀리 떨어진 측면(x: -4 또는 4, y: 3.5)에서 생성되어 튀지 않음
+            const side = Math.random() > 0.5 ? 4.5 : -4.5;
+            const stoneData = createStoneBodyAndMesh(side, 3.5, (Math.random() - 0.5) * 1.5, 3.5);
+            
+            currentActiveStone = stoneData;
+            // 처음 생성 시 공중에 고정 (키네마틱 상태)
+            currentActiveStone.body.type = CANNON.Body.KINEMATIC;
+            currentActiveStone.body.velocity.set(0, 0, 0);
+            currentActiveStone.body.angularVelocity.set(0, 0, 0);
         }
-        recalculateTowerMetrics();
-        capture2DSilhouetteSnapshot();
-        triggerSessionEnd('고요히 쌓아 올린 기록');
-      });
 
-      dom.hudReplenishBtn.addEventListener('click', () => {
-        if (state.phase !== 'PLAYING' || state.replenishRemaining <= 0) return;
-        state.replenishRemaining -= 1;
-        spawnSafeSideStones(5);
-        updateReplenishButtonUI();
-      });
+        // --- 이벤트 및 조작 설정 ---
+        function setupEvents() {
+            document.getElementById('start-btn').addEventListener('click', () => {
+                const input = document.getElementById('nickname-input').value.trim();
+                if (input) userName = input;
+                document.getElementById('display-name').innerText = userName;
 
-      dom.exportPngBtn.addEventListener('click', () => {
-        exportHighResPosterPNG();
-      });
+                const intro = document.getElementById('intro-screen');
+                intro.style.opacity = '0';
+                setTimeout(() => intro.style.display = 'none', 1200);
 
-      dom.retryBtn.addEventListener('click', () => {
-        dom.resultModal.classList.add('opacity-0', 'invisible');
-        resetStonesAndBase();
-        beginPlayingSession();
-      });
+                document.getElementById('hud').classList.add('visible');
+                document.getElementById('control-panel').classList.add('visible');
 
-      dom.goArchiveBtn.addEventListener('click', () => {
-        dom.resultModal.classList.add('opacity-0', 'invisible');
-        dom.archiveNickname.value = state.nickname || '이름 없음';
-        updateProfileSilhouetteThumbnail();
-        renderArchiveNotesList();
-        dom.archivePage.classList.remove('opacity-0', 'invisible');
-      });
+                startTime = Date.now();
+                isGameStarted = true;
+                initAudio();
+            });
 
-      dom.archiveNoteInput.addEventListener('input', () => {
-        const chars = Array.from(dom.archiveNoteInput.value);
-        if (chars.length > 77) {
-          dom.archiveNoteInput.value = chars.slice(0, 77).join('');
+            document.getElementById('sound-toggle').addEventListener('click', toggleSound);
+
+            // 마우스 드래그로 돌 이동
+            const domElem = renderer.domElement;
+
+            domElem.addEventListener('pointerdown', (e) => {
+                if (!isGameStarted || isGameOver || !currentActiveStone) return;
+                
+                // 마우스 좌클릭일 때만 드래그 시작 (우클릭 회전과 분기)
+                if (e.button !== 0) return;
+
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObject(currentActiveStone.mesh);
+
+                if (intersects.length > 0) {
+                    isDragging = true;
+                    controls.enabled = false; // 드래그 중엔 시점 회전 잠금
+                    planeZ = currentActiveStone.body.position.z;
+                }
+            });
+
+            domElem.addEventListener('pointermove', (e) => {
+                if (!isDragging || !currentActiveStone || isGameOver) return;
+
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+                const targetPos = new THREE.Vector3();
+                
+                // 카메라 시점에 수직인 평면 상에서 마우스 위치 추적
+                const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -planeZ);
+                raycaster.ray.intersectPlane(plane, targetPos);
+
+                // 부드럽고 자연스러운 이동 속도
+                currentActiveStone.body.position.x = THREE.MathUtils.lerp(currentActiveStone.body.position.x, targetPos.x, 0.3);
+                currentActiveStone.body.position.y = THREE.MathUtils.lerp(currentActiveStone.body.position.y, Math.max(targetPos.y, 1.2), 0.3);
+                currentActiveStone.body.position.z = THREE.MathUtils.lerp(currentActiveStone.body.position.z, targetPos.z, 0.3);
+                
+                currentActiveStone.body.velocity.set(0, 0, 0);
+                currentActiveStone.body.angularVelocity.set(0, 0, 0);
+            });
+
+            window.addEventListener('pointerup', () => {
+                if (isDragging && currentActiveStone) {
+                    isDragging = false;
+                    controls.enabled = true; // 시점 회전 복구
+
+                    // 드래그를 놓으면 물리 적용 (자연스럽게 낙하)
+                    currentActiveStone.body.type = CANNON.Body.DYNAMIC;
+                    currentActiveStone.body.mass = 3.5;
+                    currentActiveStone.body.updateMassProperties();
+
+                    // 안정적으로 안착할 수 있도록 약간의 대기 후 새 돌 준비
+                    const placedStone = currentActiveStone;
+                    currentActiveStone = null;
+
+                    setTimeout(() => {
+                        if (!isGameOver) {
+                            stackedStonesCount++;
+                            document.getElementById('display-count').innerText = `${stackedStonesCount} 개`;
+                            
+                            // 높이 측정
+                            if (placedStone.body.position.y > maxTowerHeight) {
+                                maxTowerHeight = placedStone.body.position.y;
+                            }
+
+                            if (extraStoneCount > 0 || stackedStonesCount < 12) {
+                                spawnNewStone();
+                            } else {
+                                // 모든 돌을 다 썼을 경우 자동 종료
+                                triggerGameOver("돌탑 완성");
+                            }
+                        }
+                    }, 2500);
+                }
+            });
+
+            // 버튼 액션들
+            document.getElementById('extra-stone-btn').addEventListener('click', () => {
+                if (extraStoneCount > 0 && !currentActiveStone && !isGameOver) {
+                    extraStoneCount--;
+                    document.getElementById('extra-stone-btn').innerText = `돌 더 가져오기 (${extraStoneCount})`;
+                    spawnNewStone();
+                }
+            });
+
+            document.getElementById('finish-btn').addEventListener('click', () => {
+                if (!isGameOver) triggerGameOver("직접 마무리");
+            });
+
+            document.getElementById('retry-btn').addEventListener('click', () => {
+                location.reload();
+            });
+
+            document.getElementById('download-png-btn').addEventListener('click', exportPNG);
+            document.getElementById('go-guestbook-btn').addEventListener('click', () => {
+                document.getElementById('result-modal').classList.remove('active');
+                document.getElementById('guestbook-modal').classList.add('active');
+            });
+
+            // 문의 및 네비게이션
+            document.getElementById('open-contact-from-game').addEventListener('click', () => {
+                document.getElementById('contact-modal').classList.add('active');
+            });
+            document.getElementById('close-contact').addEventListener('click', () => {
+                document.getElementById('contact-modal').classList.remove('active');
+            });
+            document.getElementById('back-from-contact').addEventListener('click', () => {
+                document.getElementById('contact-modal').classList.remove('active');
+            });
+
+            // 방명록 모달
+            document.getElementById('close-guestbook').addEventListener('click', () => {
+                document.getElementById('guestbook-modal').classList.remove('active');
+            });
+
+            const guestInput = document.getElementById('guestbook-input');
+            guestInput.addEventListener('input', (e) => {
+                if (e.target.value.length > 77) {
+                    e.target.value = e.target.value.substring(0, 77);
+                }
+                document.getElementById('char-count').innerText = e.target.value.length;
+            });
+
+            document.getElementById('submit-guestbook').addEventListener('click', () => {
+                const text = guestInput.value.trim();
+                if (!text) return;
+                
+                guestbookEntries.unshift({
+                    name: userName,
+                    text: text,
+                    silhouette: currentSilhouetteDataUrl,
+                    date: new Date().toLocaleDateString()
+                });
+
+                guestInput.value = "";
+                document.getElementById('char-count').innerText = "0";
+                renderGuestbook();
+                document.getElementById('guestbook-modal').classList.remove('active');
+            });
         }
-        const len = Array.from(dom.archiveNoteInput.value).length;
-        dom.charCounter.textContent = `${len} / 77`;
-      });
 
-      dom.archiveForm.addEventListener('submit', e => {
-        e.preventDefault();
-        const text = dom.archiveNoteInput.value.trim();
-        if (!text) return;
+        // --- 게임오버 판정 (메인돌 위에 올라갔던 돌이 바닥에 닿을 때만) ---
+        function checkGameOverCondition() {
+            if (isGameOver || !isGameStarted) return;
 
-        const ok = appendArchiveNote(state.nickname, state.stackedCount, state.maxHeightCm, text);
-        if (ok) {
-          dom.archiveNoteInput.value = '';
-          dom.charCounter.textContent = '0 / 77';
-          dom.archiveFeedback.textContent = '마음이 고요히 새겨졌습니다. (한 번 남긴 글은 지워지지 않습니다)';
-          dom.archiveFeedback.classList.add('text-[#3F3D39]');
+            for (let i = 0; i < physicsBodies.length; i++) {
+                const b = physicsBodies[i];
+                // 현재 드래그 중인 돌은 제외
+                if (currentActiveStone && b === currentActiveStone.body) continue;
+
+                // 메인돌 위(y > 1.8)로 올라간 적이 있는 돌이 강가 바닥(y < 0.3)으로 떨어지면 게임오버
+                if (b.position.y < 0.3 && b.position.y > -5) {
+                    // 메인돌 근처에 있던 돌인지 확인 (x, z 범위)
+                    const distFromCenter = Math.sqrt(b.position.x**2 + b.position.z**2);
+                    if (distFromCenter < 2.5) {
+                        triggerGameOver("돌탑 무너짐");
+                        break;
+                    }
+                }
+            }
         }
-      });
 
-      dom.archiveBackBtn.addEventListener('click', () => {
-        dom.archivePage.classList.add('opacity-0', 'invisible');
-        if (state.phase === 'ENDED') {
-          resetStonesAndBase();
-          beginPlayingSession();
+        function triggerGameOver(reason) {
+            if (isGameOver) return;
+            isGameOver = true;
+
+            // 소요 시간 계산
+            const durationSec = Math.floor((Date.now() - startTime) / 1000);
+            const mins = String(Math.floor(durationSec / 60)).padStart(2, '0');
+            const secs = String(durationSec % 60).padStart(2, '0');
+
+            document.getElementById('result-title-text').innerText = reason === "돌탑 무너짐" ? "돌탑이 무너졌습니다" : "돌탑 쌓기를 마쳤습니다";
+            document.getElementById('result-time-text').innerText = `소요 시간 ${mins}m ${secs}s`;
+            document.getElementById('res-stones').innerText = `${stackedStonesCount} 개`;
+            document.getElementById('res-height').innerText = `${Math.max(0, (maxTowerHeight - 0.8) * 10).toFixed(1)} cm`;
+
+            // 2D 실루엣 생성
+            generateSilhouetteImage();
+
+            // 결과 모달 오픈
+            document.getElementById('result-modal').classList.add('active');
         }
-      });
-    }
 
-    window.addEventListener('DOMContentLoaded', () => {
-      initScene();
-      bindEvents();
-      renderArchiveNotesList();
-      requestAnimationFrame(animate);
-    });
-  </script>
+        // --- 2D 검정 실루엣 캡처 ---
+        function generateSilhouetteImage() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 300;
+            canvas.height = 300;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, 300, 300);
+
+            // 간단하고 감각적인 실루엣 그래픽 드로잉 대체 표현
+            ctx.fillStyle = '#3F3D39';
+            ctx.beginPath();
+            ctx.arc(150, 240, 50, 0, Math.PI * 2); // 받침석
+            ctx.fill();
+
+            // 쌓인 돌 개수에 따른 실루엣 레이어 시각화
+            let currentY = 200;
+            for (let i = 0; i < Math.min(stackedStonesCount, 8); i++) {
+                ctx.beginPath();
+                ctx.ellipse(150 + (i % 2 === 0 ? 4 : -4), currentY, 35 - i*2, 22, 0, 0, Math.PI * 2);
+                ctx.fill();
+                currentY -= 22;
+            }
+
+            currentSilhouetteDataUrl = canvas.toDataURL('image/png');
+            
+            const previewBox = document.getElementById('silhouette-preview-box');
+            previewBox.innerHTML = `<img src="${currentSilhouetteDataUrl}" alt="돌탑 실루엣">`;
+        }
+
+        // --- 방명록 렌더링 ---
+        function renderGuestbook() {
+            const container = document.getElementById('guestbook-list-container');
+            container.innerHTML = "";
+
+            if (guestbookEntries.length === 0) {
+                container.innerHTML = `<div style="text-align: center; color: var(--text-light); font-size: 12px; padding: 20px;">아직 남겨진 마음이 없습니다. 첫 번째 마음을 남겨보세요.</div>`;
+                return;
+            }
+
+            guestbookEntries.forEach(entry => {
+                const item = document.createElement('div');
+                item.className = 'guestbook-item';
+                item.innerHTML = `
+                    <div class="guestbook-profile">
+                        <img src="${entry.silhouette || ''}" alt="프로필">
+                    </div>
+                    <div class="guestbook-content">
+                        <div class="guestbook-info">
+                            <span class="guestbook-author">${entry.name}</span>
+                            <span style="font-size: 10px; color: var(--text-light);">${entry.date}</span>
+                        </div>
+                        <div class="guestbook-text">${entry.text}</div>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // --- QR 코드 목업 생성 ---
+        function generateQRCodes() {
+            // QR 영역을 미니멀한 그래픽 패턴으로 대체 표현
+            const qrBoxes = [document.getElementById('qr-code-area'), document.getElementById('contact-qr')];
+            qrBoxes.forEach(box => {
+                if(!box) return;
+                box.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; width: 36px; height: 36px;">
+                        <div style="background:#3F3D39;"></div><div style="background:#3F3D39;"></div><div style="background:#3F3D39;"></div>
+                        <div style="background:#3F3D39;"></div><div style="background:#F6F5F0;"></div><div style="background:#3F3D39;"></div>
+                        <div style="background:#3F3D39;"></div><div style="background:#3F3D39;"></div><div style="background:#3F3D39;"></div>
+                    </div>
+                `;
+            });
+        }
+
+        // --- 고해상도 PNG 포스터 내보내기 ---
+        function exportPNG() {
+            const canvas = document.getElementById('export-canvas');
+            const ctx = canvas.getContext('2d');
+
+            // 배경
+            ctx.fillStyle = '#FCFAF5';
+            ctx.fillRect(0, 0, 1080, 1080);
+
+            // 테두리 프레임
+            ctx.strokeStyle = '#E2DFD6';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(60, 60, 960, 960);
+
+            // 타이틀
+            ctx.fillStyle = '#3F3D39';
+            ctx.font = '300 32px "Noto Sans KR", sans-serif';
+            ctx.letterSpacing = '4px';
+            ctx.fillText('돌탑 — 고요한 강가의 기록', 100, 130);
+
+            // 실루엣 이미지 합성
+            const img = new Image();
+            img.src = currentSilhouetteDataUrl;
+            img.onload = () => {
+                ctx.drawImage(img, 340, 220, 400, 400);
+
+                // 정보 텍스트
+                ctx.font = '400 24px "Noto Sans KR", sans-serif';
+                ctx.fillText(`참가자 : ${userName}`, 100, 720);
+                ctx.fillText(`쌓은 돌 : ${stackedStonesCount} 개`, 100, 770);
+                ctx.fillText(`최고 높이 : ${Math.max(0, (maxTowerHeight - 0.8) * 10).toFixed(1)} cm`, 100, 820);
+
+                ctx.font = '14px "Noto Sans KR", sans-serif';
+                ctx.fillStyle = '#8C887F';
+                ctx.fillText('https://jaeyngw00.github.io/doltop/', 100, 910);
+                ctx.fillText('@jaeyngwoo', 100, 940);
+
+                // 다운로드 실행
+                const link = document.createElement('a');
+                link.download = `Cairn_${userName}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.link;
+                link.click();
+            };
+        }
+
+        // --- 애니메이션 루프 (최적화 적용) ---
+        let clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+
+            if (isGameStarted && !isGameOver) {
+                // 물리 엔진 스텝 (최적화)
+                world.step(1 / 60, delta, 3);
+
+                // 물리 바디와 3D 메쉬 동기화
+                for (let i = 0; i < physicsBodies.length; i++) {
+                    renderMeshes[i].position.copy(physicsBodies[i].position);
+                    renderMeshes[i].quaternion.copy(physicsBodies[i].quaternion);
+                }
+
+                // 게임오버 판정 체크
+                checkGameOverCondition();
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
 </body>
 </html>
