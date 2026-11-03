@@ -349,7 +349,7 @@
             width: 100%;
         }
 
-        /* 후기(마음 남기기) 모달 및 페이지 */
+        /* 후기(마음 남기기) 모달 */
         #guestbook-modal {
             position: absolute;
             top: 0;
@@ -556,7 +556,7 @@
             <h1 class="intro-title">돌탑</h1>
             <p class="intro-desc">고요한 강가에서 마음을 모아 돌을 쌓아 올립니다.<br>마우스로 드래그하여 탑을 완성하세요.</p>
             <input type="text" id="nickname-input" class="nickname-input" placeholder="성함 또는 닉네임을 입력하세요" maxlength="12">
-            <button class="btn" id="start-btn">시작하기</button>
+            <button class="btn interactive" id="start-btn">시작하기</button>
         </div>
     </div>
 
@@ -573,7 +573,7 @@
             </div>
             <div class="hud-group" style="text-align: right;">
                 <span class="hud-label">ACTIONS</span>
-                <button class="nav-link-btn" id="open-contact-from-game">문의하기</button>
+                <button class="nav-link-btn interactive" id="open-contact-from-game">문의하기</button>
             </div>
         </div>
 
@@ -685,7 +685,6 @@
         
         let userName = "참가자";
         let startTime = null;
-        let elapsedTimeTimer = 0;
         let isGameStarted = false;
         let isGameOver = false;
         let extraStoneCount = 3;
@@ -699,12 +698,9 @@
         let mainStoneBody = null;
         let mainStoneMesh = null;
 
-        // 초기 방명록 데이터 (요청대로 기본 2개 글 삭제 상태로 시작, 빈 배열)
         let guestbookEntries = [];
-
         const stoneColors = [0x5A564E, 0x4A4740, 0x6E6A60, 0x7A756B, 0x535048, 0x45423C];
 
-        // --- 사운드 생성기 (Web Audio API) ---
         function initAudio() {
             if (audioCtx) return;
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -730,34 +726,27 @@
 
         function playAmbientStream() {
             if (!audioCtx) return;
-            // 펜타토닉 음계 (잔잔한 싱잉볼/명상 사운드)
             const notes = [130.81, 146.83, 164.81, 196.00, 220.00, 261.63, 293.66];
-            
             if (audioInterval) clearInterval(audioInterval);
             audioInterval = setInterval(() => {
                 if (!isAudioPlaying) return;
                 try {
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
-                    
                     const freq = notes[Math.floor(Math.random() * notes.length)];
                     osc.type = 'sine';
                     osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                    
                     gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.04, audioCtx.currentTime + 2);
                     gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 7);
-                    
                     osc.connect(gain);
                     gain.connect(audioCtx.destination);
-                    
                     osc.start();
                     osc.stop(audioCtx.currentTime + 7.5);
                 } catch(e) {}
             }, 3500);
         }
 
-        // --- 초기화 및 실행 ---
         window.addEventListener('load', () => {
             initThreeAndPhysics();
             setupEvents();
@@ -768,16 +757,13 @@
         function initThreeAndPhysics() {
             const container = document.getElementById('canvas-container');
 
-            // 1. Scene
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0xF6F5F0);
             scene.fog = new THREE.FogExp2(0xF6F5F0, 0.012);
 
-            // 2. Camera
             camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.set(0, 5, 14);
 
-            // 3. Renderer (최적화 설정)
             renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -785,22 +771,19 @@
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             container.appendChild(renderer.domElement);
 
-            // 4. OrbitControls (메인돌 주변을 둘러가며 볼 수 있도록 세팅)
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
-            controls.maxPolarAngle = Math.PI / 2 - 0.02; // 바닥 밑으로 내려가지 않음
+            controls.maxPolarAngle = Math.PI / 2 - 0.02;
             controls.minDistance = 6;
             controls.maxDistance = 25;
             controls.target.set(0, 1.5, 0);
 
-            // 5. Physics World (최적화된 물리 설정)
             world = new CANNON.World();
             world.gravity.set(0, -9.82, 0);
             world.broadphase = new CANNON.NaiveBroadphase();
             world.solver.iterations = 10;
 
-            // 6. Lights
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
             scene.add(ambientLight);
 
@@ -809,19 +792,11 @@
             dirLight.castShadow = true;
             dirLight.shadow.mapSize.width = 1024;
             dirLight.shadow.mapSize.height = 1024;
-            dirLight.shadow.camera.near = 0.5;
-            dirLight.shadow.camera.far = 40;
-            const d = 10;
-            dirLight.shadow.camera.left = -d;
-            dirLight.shadow.camera.right = d;
-            dirLight.shadow.camera.top = d;
-            dirLight.shadow.camera.bottom = -d;
             scene.add(dirLight);
 
             const hemiLight = new THREE.HemisphereLight(0xffffff, 0xd0c8b8, 0.4);
             scene.add(hemiLight);
 
-            // 7. Ground (강가 바닥)
             const groundGeo = new THREE.PlaneGeometry(100, 100);
             const groundMat = new THREE.MeshStandardMaterial({ color: 0xEEECE3, roughness: 0.9 });
             const groundMesh = new THREE.Mesh(groundGeo, groundMat);
@@ -836,7 +811,6 @@
             groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
             world.addBody(groundBody);
 
-            // 8. Main Stone (중앙 받침석 - 안정적인 큰 바위)
             const mainGeo = new THREE.DodecahedronGeometry(1.2, 1);
             const mainMat = new THREE.MeshStandardMaterial({ color: 0x6E6A60, roughness: 0.85, flatShading: true });
             mainStoneMesh = new THREE.Mesh(mainGeo, mainMat);
@@ -847,39 +821,27 @@
 
             const mainShape = new CANNON.Sphere(1.1);
             mainStoneBody = new CANNON.Body({
-                mass: 0, // 고정석
+                mass: 0,
                 position: new CANNON.Vec3(0, 0.8, 0)
             });
             mainStoneBody.addShape(mainShape);
             world.addBody(mainStoneBody);
 
-            // Raycaster & Mouse
             raycaster = new THREE.Raycaster();
             mouse = new THREE.Vector2();
 
-            // 첫 번째 돌 생성 (안전한 측면 스폰)
             spawnNewStone();
-
-            // 애니메이션 루프
             animate();
         }
 
-        // --- 절차적 불규칙 강돌 생성 (폴리곤 2배 증가 및 부드러운 형태) ---
         function createProceduralStoneGeometry(radius = 0.8) {
-            // 디테일(detail)을 높여 폴리곤 2배 증가 (Icosahedron detail 1 -> 2)
             const geometry = new THREE.IcosahedronGeometry(radius, 2);
             const positionAttribute = geometry.attributes.position;
-            
             for (let i = 0; i < positionAttribute.count; i++) {
                 let x = positionAttribute.getX(i);
                 let y = positionAttribute.getY(i);
                 let z = positionAttribute.getZ(i);
-
-                // 노이즈 및 비대칭 변형 적용
-                const length = Math.sqrt(x*x + y*y + z*z);
                 const noise = 0.85 + Math.sin(x * 3) * Math.cos(y * 3) * 0.25;
-                
-                // 납작하고 자연스러운 강돌 형태 유지
                 positionAttribute.setXYZ(i, x * noise * 1.2, y * noise * 0.75, z * noise * 1.1);
             }
             geometry.computeVertexNormals();
@@ -903,7 +865,6 @@
             mesh.position.set(x, y, z);
             scene.add(mesh);
 
-            // Cannon physics shape (Sphere 혹은 Box 근사치로 안정성 확보)
             const shape = new CANNON.Sphere(radius * 0.85);
             const body = new CANNON.Body({
                 mass: mass,
@@ -916,52 +877,47 @@
 
             physicsBodies.push(body);
             renderMeshes.push(mesh);
-
             return { body, mesh };
         }
 
-        // --- 새로운 돌 스폰 (탑을 건드리지 않도록 측면 안전지대에서 생성) ---
         function spawnNewStone() {
             if (isGameOver) return;
-            // 탑에서 멀리 떨어진 측면(x: -4 또는 4, y: 3.5)에서 생성되어 튀지 않음
             const side = Math.random() > 0.5 ? 4.5 : -4.5;
             const stoneData = createStoneBodyAndMesh(side, 3.5, (Math.random() - 0.5) * 1.5, 3.5);
-            
             currentActiveStone = stoneData;
-            // 처음 생성 시 공중에 고정 (키네마틱 상태)
             currentActiveStone.body.type = CANNON.Body.KINEMATIC;
             currentActiveStone.body.velocity.set(0, 0, 0);
             currentActiveStone.body.angularVelocity.set(0, 0, 0);
         }
 
-        // --- 이벤트 및 조작 설정 ---
         function setupEvents() {
-            document.getElementById('start-btn').addEventListener('click', () => {
-                const input = document.getElementById('nickname-input').value.trim();
-                if (input) userName = input;
-                document.getElementById('display-name').innerText = userName;
+            const startBtn = document.getElementById('start-btn');
+            if (startBtn) {
+                startBtn.addEventListener('click', () => {
+                    const input = document.getElementById('nickname-input').value.trim();
+                    if (input) userName = input;
+                    document.getElementById('display-name').innerText = userName;
 
-                const intro = document.getElementById('intro-screen');
-                intro.style.opacity = '0';
-                setTimeout(() => intro.style.display = 'none', 1200);
+                    const intro = document.getElementById('intro-screen');
+                    if (intro) {
+                        intro.style.opacity = '0';
+                        setTimeout(() => intro.style.display = 'none', 1200);
+                    }
 
-                document.getElementById('hud').classList.add('visible');
-                document.getElementById('control-panel').classList.add('visible');
+                    document.getElementById('hud').classList.add('visible');
+                    document.getElementById('control-panel').classList.add('visible');
 
-                startTime = Date.now();
-                isGameStarted = true;
-                initAudio();
-            });
+                    startTime = Date.now();
+                    isGameStarted = true;
+                    initAudio();
+                });
+            }
 
             document.getElementById('sound-toggle').addEventListener('click', toggleSound);
 
-            // 마우스 드래그로 돌 이동
             const domElem = renderer.domElement;
-
             domElem.addEventListener('pointerdown', (e) => {
                 if (!isGameStarted || isGameOver || !currentActiveStone) return;
-                
-                // 마우스 좌클릭일 때만 드래그 시작 (우클릭 회전과 분기)
                 if (e.button !== 0) return;
 
                 mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -972,7 +928,7 @@
 
                 if (intersects.length > 0) {
                     isDragging = true;
-                    controls.enabled = false; // 드래그 중엔 시점 회전 잠금
+                    controls.enabled = false;
                     planeZ = currentActiveStone.body.position.z;
                 }
             });
@@ -985,12 +941,9 @@
 
                 raycaster.setFromCamera(mouse, camera);
                 const targetPos = new THREE.Vector3();
-                
-                // 카메라 시점에 수직인 평면 상에서 마우스 위치 추적
                 const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -planeZ);
                 raycaster.ray.intersectPlane(plane, targetPos);
 
-                // 부드럽고 자연스러운 이동 속도
                 currentActiveStone.body.position.x = THREE.MathUtils.lerp(currentActiveStone.body.position.x, targetPos.x, 0.3);
                 currentActiveStone.body.position.y = THREE.MathUtils.lerp(currentActiveStone.body.position.y, Math.max(targetPos.y, 1.2), 0.3);
                 currentActiveStone.body.position.z = THREE.MathUtils.lerp(currentActiveStone.body.position.z, targetPos.z, 0.3);
@@ -1002,14 +955,12 @@
             window.addEventListener('pointerup', () => {
                 if (isDragging && currentActiveStone) {
                     isDragging = false;
-                    controls.enabled = true; // 시점 회전 복구
+                    controls.enabled = true;
 
-                    // 드래그를 놓으면 물리 적용 (자연스럽게 낙하)
                     currentActiveStone.body.type = CANNON.Body.DYNAMIC;
                     currentActiveStone.body.mass = 3.5;
                     currentActiveStone.body.updateMassProperties();
 
-                    // 안정적으로 안착할 수 있도록 약간의 대기 후 새 돌 준비
                     const placedStone = currentActiveStone;
                     currentActiveStone = null;
 
@@ -1018,7 +969,6 @@
                             stackedStonesCount++;
                             document.getElementById('display-count').innerText = `${stackedStonesCount} 개`;
                             
-                            // 높이 측정
                             if (placedStone.body.position.y > maxTowerHeight) {
                                 maxTowerHeight = placedStone.body.position.y;
                             }
@@ -1026,7 +976,6 @@
                             if (extraStoneCount > 0 || stackedStonesCount < 12) {
                                 spawnNewStone();
                             } else {
-                                // 모든 돌을 다 썼을 경우 자동 종료
                                 triggerGameOver("돌탑 완성");
                             }
                         }
@@ -1034,7 +983,6 @@
                 }
             });
 
-            // 버튼 액션들
             document.getElementById('extra-stone-btn').addEventListener('click', () => {
                 if (extraStoneCount > 0 && !currentActiveStone && !isGameOver) {
                     extraStoneCount--;
@@ -1057,7 +1005,6 @@
                 document.getElementById('guestbook-modal').classList.add('active');
             });
 
-            // 문의 및 네비게이션
             document.getElementById('open-contact-from-game').addEventListener('click', () => {
                 document.getElementById('contact-modal').classList.add('active');
             });
@@ -1068,7 +1015,6 @@
                 document.getElementById('contact-modal').classList.remove('active');
             });
 
-            // 방명록 모달
             document.getElementById('close-guestbook').addEventListener('click', () => {
                 document.getElementById('guestbook-modal').classList.remove('active');
             });
@@ -1099,18 +1045,14 @@
             });
         }
 
-        // --- 게임오버 판정 (메인돌 위에 올라갔던 돌이 바닥에 닿을 때만) ---
         function checkGameOverCondition() {
             if (isGameOver || !isGameStarted) return;
 
             for (let i = 0; i < physicsBodies.length; i++) {
                 const b = physicsBodies[i];
-                // 현재 드래그 중인 돌은 제외
                 if (currentActiveStone && b === currentActiveStone.body) continue;
 
-                // 메인돌 위(y > 1.8)로 올라간 적이 있는 돌이 강가 바닥(y < 0.3)으로 떨어지면 게임오버
                 if (b.position.y < 0.3 && b.position.y > -5) {
-                    // 메인돌 근처에 있던 돌인지 확인 (x, z 범위)
                     const distFromCenter = Math.sqrt(b.position.x**2 + b.position.z**2);
                     if (distFromCenter < 2.5) {
                         triggerGameOver("돌탑 무너짐");
@@ -1124,7 +1066,6 @@
             if (isGameOver) return;
             isGameOver = true;
 
-            // 소요 시간 계산
             const durationSec = Math.floor((Date.now() - startTime) / 1000);
             const mins = String(Math.floor(durationSec / 60)).padStart(2, '0');
             const secs = String(durationSec % 60).padStart(2, '0');
@@ -1134,14 +1075,10 @@
             document.getElementById('res-stones').innerText = `${stackedStonesCount} 개`;
             document.getElementById('res-height').innerText = `${Math.max(0, (maxTowerHeight - 0.8) * 10).toFixed(1)} cm`;
 
-            // 2D 실루엣 생성
             generateSilhouetteImage();
-
-            // 결과 모달 오픈
             document.getElementById('result-modal').classList.add('active');
         }
 
-        // --- 2D 검정 실루엣 캡처 ---
         function generateSilhouetteImage() {
             const canvas = document.createElement('canvas');
             canvas.width = 300;
@@ -1151,13 +1088,11 @@
             ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(0, 0, 300, 300);
 
-            // 간단하고 감각적인 실루엣 그래픽 드로잉 대체 표현
             ctx.fillStyle = '#3F3D39';
             ctx.beginPath();
-            ctx.arc(150, 240, 50, 0, Math.PI * 2); // 받침석
+            ctx.arc(150, 240, 50, 0, Math.PI * 2);
             ctx.fill();
 
-            // 쌓인 돌 개수에 따른 실루엣 레이어 시각화
             let currentY = 200;
             for (let i = 0; i < Math.min(stackedStonesCount, 8); i++) {
                 ctx.beginPath();
@@ -1167,12 +1102,10 @@
             }
 
             currentSilhouetteDataUrl = canvas.toDataURL('image/png');
-            
             const previewBox = document.getElementById('silhouette-preview-box');
             previewBox.innerHTML = `<img src="${currentSilhouetteDataUrl}" alt="돌탑 실루엣">`;
         }
 
-        // --- 방명록 렌더링 ---
         function renderGuestbook() {
             const container = document.getElementById('guestbook-list-container');
             container.innerHTML = "";
@@ -1201,9 +1134,7 @@
             });
         }
 
-        // --- QR 코드 목업 생성 ---
         function generateQRCodes() {
-            // QR 영역을 미니멀한 그래픽 패턴으로 대체 표현
             const qrBoxes = [document.getElementById('qr-code-area'), document.getElementById('contact-qr')];
             qrBoxes.forEach(box => {
                 if(!box) return;
@@ -1217,33 +1148,26 @@
             });
         }
 
-        // --- 고해상도 PNG 포스터 내보내기 ---
         function exportPNG() {
             const canvas = document.getElementById('export-canvas');
             const ctx = canvas.getContext('2d');
 
-            // 배경
             ctx.fillStyle = '#FCFAF5';
             ctx.fillRect(0, 0, 1080, 1080);
 
-            // 테두리 프레임
             ctx.strokeStyle = '#E2DFD6';
             ctx.lineWidth = 4;
             ctx.strokeRect(60, 60, 960, 960);
 
-            // 타이틀
             ctx.fillStyle = '#3F3D39';
             ctx.font = '300 32px "Noto Sans KR", sans-serif';
-            ctx.letterSpacing = '4px';
             ctx.fillText('돌탑 — 고요한 강가의 기록', 100, 130);
 
-            // 실루엣 이미지 합성
             const img = new Image();
             img.src = currentSilhouetteDataUrl;
             img.onload = () => {
                 ctx.drawImage(img, 340, 220, 400, 400);
 
-                // 정보 텍스트
                 ctx.font = '400 24px "Noto Sans KR", sans-serif';
                 ctx.fillText(`참가자 : ${userName}`, 100, 720);
                 ctx.fillText(`쌓은 돌 : ${stackedStonesCount} 개`, 100, 770);
@@ -1254,34 +1178,24 @@
                 ctx.fillText('https://jaeyngw00.github.io/doltop/', 100, 910);
                 ctx.fillText('@jaeyngwoo', 100, 940);
 
-                // 다운로드 실행
                 const link = document.createElement('a');
                 link.download = `Cairn_${userName}.png`;
                 link.href = canvas.toDataURL('image/png');
-                link.link;
                 link.click();
             };
         }
 
-        // --- 애니메이션 루프 (최적화 적용) ---
         let clock = new THREE.Clock();
-
         function animate() {
             requestAnimationFrame(animate);
-
             const delta = clock.getDelta();
 
             if (isGameStarted && !isGameOver) {
-                // 물리 엔진 스텝 (최적화)
                 world.step(1 / 60, delta, 3);
-
-                // 물리 바디와 3D 메쉬 동기화
                 for (let i = 0; i < physicsBodies.length; i++) {
                     renderMeshes[i].position.copy(physicsBodies[i].position);
                     renderMeshes[i].quaternion.copy(physicsBodies[i].quaternion);
                 }
-
-                // 게임오버 판정 체크
                 checkGameOverCondition();
             }
 
