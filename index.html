@@ -108,6 +108,15 @@
             margin-bottom: 24px;
         }
 
+        .nickname-input::placeholder {
+            color: var(--text-light);
+            transition: opacity 0.2s;
+        }
+
+        .nickname-input:focus::placeholder {
+            opacity: 0; /* 클릭하면 안내 문구가 사라지도록 설정 */
+        }
+
         .btn {
             background: var(--text-color);
             color: var(--bg-color);
@@ -552,11 +561,11 @@
 
     <!-- 인트로 화면 -->
     <div id="intro-screen">
-        <div class="intro-box">
+        <div class="intro-box interactive">
             <h1 class="intro-title">돌탑</h1>
             <p class="intro-desc">고요한 강가에서 마음을 모아 돌을 쌓아 올립니다.<br>마우스로 드래그하여 탑을 완성하세요.</p>
-            <input type="text" id="nickname-input" class="nickname-input" placeholder="성함 또는 닉네임을 입력하세요" maxlength="12">
-            <button class="btn interactive" id="start-btn">시작하기</button>
+            <input type="text" id="nickname-input" class="nickname-input interactive" placeholder="성함 또는 닉네임을 입력하세요" maxlength="12">
+            <button class="btn interactive" id="start-btn" type="button">시작하기</button>
         </div>
     </div>
 
@@ -592,9 +601,7 @@
     <!-- 결과 모달 -->
     <div id="result-modal">
         <div class="modal-card">
-            <div class="silhouette-preview" id="silhouette-preview-box">
-                <!-- 2D 실루엣 이미지 렌더링 -->
-            </div>
+            <div class="silhouette-preview" id="silhouette-preview-box"></div>
             <div class="result-title" id="result-title-text">돌탑 쌓기 완료</div>
             <div class="result-subtitle" id="result-time-text">소요 시간 00m 00s</div>
 
@@ -610,9 +617,7 @@
             </div>
 
             <div class="qr-section">
-                <div class="qr-placeholder" id="qr-code-area">
-                    QR CODE
-                </div>
+                <div class="qr-placeholder" id="qr-code-area">QR</div>
                 <div class="qr-info">
                     <a href="https://jaeyngw00.github.io/doltop/" class="site-link" target="_blank">돌탑 온라인 전시 사이트</a>
                     <div class="sns-handle">
@@ -644,9 +649,7 @@
                 </div>
                 <button class="btn interactive" id="submit-guestbook" style="margin-top: 8px;">마음 새기기</button>
             </div>
-            <div class="guestbook-list" id="guestbook-list-container">
-                <!-- 방명록 목록 -->
-            </div>
+            <div class="guestbook-list" id="guestbook-list-container"></div>
         </div>
     </div>
 
@@ -673,7 +676,6 @@
     <canvas id="export-canvas" width="1080" height="1080" style="display:none;"></canvas>
 
     <script>
-        // --- 전역 변수 및 설정 ---
         let scene, camera, renderer, controls;
         let world;
         let physicsBodies = [];
@@ -892,24 +894,37 @@
 
         function setupEvents() {
             const startBtn = document.getElementById('start-btn');
+            const introScreen = document.getElementById('intro-screen');
+            const nicknameInput = document.getElementById('nickname-input');
+
+            function startGame() {
+                if (isGameStarted) return;
+                const input = nicknameInput.value.trim();
+                if (input) userName = input;
+                document.getElementById('display-name').innerText = userName;
+
+                if (introScreen) {
+                    introScreen.style.opacity = '0';
+                    setTimeout(() => introScreen.style.display = 'none', 1200);
+                }
+
+                document.getElementById('hud').classList.add('visible');
+                document.getElementById('control-panel').classList.add('visible');
+
+                startTime = Date.now();
+                isGameStarted = true;
+                initAudio();
+            }
+
             if (startBtn) {
-                startBtn.addEventListener('click', () => {
-                    const input = document.getElementById('nickname-input').value.trim();
-                    if (input) userName = input;
-                    document.getElementById('display-name').innerText = userName;
+                startBtn.addEventListener('click', startGame);
+            }
 
-                    const intro = document.getElementById('intro-screen');
-                    if (intro) {
-                        intro.style.opacity = '0';
-                        setTimeout(() => intro.style.display = 'none', 1200);
+            if (nicknameInput) {
+                nicknameInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        startGame();
                     }
-
-                    document.getElementById('hud').classList.add('visible');
-                    document.getElementById('control-panel').classList.add('visible');
-
-                    startTime = Date.now();
-                    isGameStarted = true;
-                    initAudio();
                 });
             }
 
