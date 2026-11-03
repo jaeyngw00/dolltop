@@ -1,1212 +1,1744 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>돌탑 — 고요한 강가의 기록</title>
-    <style>
-        :root {
-            --bg-color: #F6F5F0;
-            --surface-color: #FCFAF5;
-            --text-color: #3F3D39;
-            --text-light: #8C887F;
-            --border-color: #E2DFD6;
-            --accent-color: #6B675E;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>돌탑 — 고요한 강가의 기록</title>
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
-        }
+  <!-- Google Fonts: Noto Sans KR & Nanum Myeongjo -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet">
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
-            position: relative;
-        }
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
 
-        #canvas-container {
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-        }
+  <!-- 검증된 Three.js (r128) & Cannon.js (0.6.2) CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
 
-        .ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 32px;
-        }
+  <style>
+    :root {
+      --bg-paper: #ECECEC;
+      --bg-warm: #E2E2E2;
+      --surface-card: #FFFFFF;
+      --ink-deep: #1A1A1A;
+      --ink-silhouette: #1A1A1A;
+      --ink-soft: #666666;
+      --ink-faint: #8C8C8C;
+      --line-subtle: #DCDCDC;
+      --accent-warm: #333333;
+    }
 
-        .interactive {
-            pointer-events: auto;
-        }
+    * {
+      box-sizing: border-box;
+      border-radius: 0px !important;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      user-select: none;
+    }
 
-        #intro-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: var(--bg-color);
-            z-index: 99999;
-            pointer-events: auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            transition: opacity 1s ease;
-        }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-paper);
+      color: var(--ink-deep);
+      font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-weight: 300;
+    }
 
-        .intro-box {
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
+    .serif-title {
+      font-family: 'Nanum Myeongjo', serif;
+    }
 
-        .intro-title {
-            font-size: 28px;
-            font-weight: 300;
-            letter-spacing: 0.1em;
-            margin-bottom: 12px;
-            color: var(--text-color);
-        }
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+    }
 
-        .intro-desc {
-            font-size: 13px;
-            color: var(--text-light);
-            line-height: 1.6;
-            margin-bottom: 36px;
-        }
+    /* 닉네임 입력창 클릭(포커스) 시 안내 문구 즉시 투명화 */
+    .nickname-field::placeholder {
+      color: #8C8C8C;
+      opacity: 1;
+      transition: opacity 0.15s ease;
+    }
+    .nickname-field:focus::placeholder {
+      color: transparent !important;
+      opacity: 0 !important;
+    }
 
-        .nickname-input {
-            width: 100%;
-            padding: 14px 0;
-            background: transparent;
-            border: none;
-            border-bottom: 1px solid var(--text-color);
-            font-size: 16px;
-            text-align: center;
-            color: var(--text-color);
-            outline: none;
-            margin-bottom: 24px;
-        }
+    .calm-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 11px 20px;
+      font-size: 13px;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      border: 1px solid var(--line-subtle);
+      background-color: rgba(255, 255, 255, 0.92);
+      color: var(--ink-deep);
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
 
-        .nickname-input::placeholder {
-            color: var(--text-light);
-            opacity: 1;
-        }
+    .calm-btn:hover:not(:disabled) {
+      border-color: var(--ink-deep);
+      background-color: var(--ink-deep);
+      color: var(--surface-card);
+    }
 
-        .nickname-input:focus::placeholder {
-            color: transparent;
-        }
+    .calm-btn-primary {
+      background-color: var(--ink-deep);
+      color: var(--surface-card);
+      border-color: var(--ink-deep);
+    }
 
-        .btn {
-            background: var(--text-color);
-            color: var(--bg-color);
-            border: none;
-            padding: 14px 32px;
-            font-size: 13px;
-            letter-spacing: 0.1em;
-            cursor: pointer;
-            transition: background 0.3s;
-            width: 100%;
-        }
+    .calm-btn-primary:hover:not(:disabled) {
+      background-color: #383838;
+      border-color: #383838;
+    }
 
-        .btn:hover {
-            background: var(--accent-color);
-        }
+    .calm-btn-accent {
+      background-color: #333333;
+      color: #FFFFFF;
+      border-color: #1A1A1A;
+    }
 
-        .btn-outline {
-            background: transparent;
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
-        }
+    .calm-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
 
-        .btn-outline:hover {
-            background: var(--surface-color);
-            border-color: var(--text-color);
-        }
+    .text-link-btn {
+      font-size: 12px;
+      color: var(--ink-soft);
+      letter-spacing: 0.03em;
+      padding: 6px 10px;
+      transition: color 0.2s ease;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+    }
 
-        .hud {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            opacity: 0;
-            transition: opacity 1s ease 0.5s;
-        }
+    .text-link-btn:hover:not(:disabled) {
+      color: var(--ink-deep);
+      text-decoration: underline;
+      text-underline-offset: 4px;
+    }
 
-        .hud.visible {
-            opacity: 1;
-            pointer-events: auto;
-        }
+    #canvas-container {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      touch-action: none;
+    }
 
-        .hud-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
+    .fade-layer {
+      transition: opacity 0.65s ease, visibility 0.65s ease;
+    }
 
-        .hud-label {
-            font-size: 11px;
-            letter-spacing: 0.15em;
-            color: var(--text-light);
-        }
+    @keyframes pulseGentle {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-2px); }
+    }
+    .nudge-badge {
+      animation: pulseGentle 2.2s infinite ease-in-out;
+    }
 
-        .hud-value {
-            font-size: 18px;
-            font-weight: 400;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .control-panel {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            opacity: 0;
-            transition: opacity 1s ease 0.5s;
-        }
-
-        .control-panel.visible {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .action-group {
-            display: flex;
-            gap: 12px;
-        }
-
-        .help-text {
-            font-size: 12px;
-            color: var(--text-light);
-            background: rgba(246, 245, 240, 0.85);
-            padding: 8px 14px;
-            border: 1px solid var(--border-color);
-            backdrop-filter: blur(4px);
-        }
-
-        .sound-btn {
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            padding: 8px 16px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .sound-btn:hover {
-            border-color: var(--text-color);
-        }
-
-        #result-modal {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(63, 61, 57, 0.4);
-            backdrop-filter: blur(8px);
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.5s ease;
-        }
-
-        #result-modal.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .modal-card {
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
-            padding: 40px;
-            width: 440px;
-            max-width: 90%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.05);
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .silhouette-preview {
-            width: 160px;
-            height: 160px;
-            background: var(--bg-color);
-            border: 1px solid var(--border-color);
-            margin-bottom: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .silhouette-preview img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-        }
-
-        .result-title {
-            font-size: 18px;
-            font-weight: 400;
-            letter-spacing: 0.05em;
-            margin-bottom: 8px;
-        }
-
-        .result-subtitle {
-            font-size: 12px;
-            color: var(--text-light);
-            margin-bottom: 24px;
-        }
-
-        .result-stats {
-            width: 100%;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 24px;
-            text-align: left;
-            border-top: 1px solid var(--border-color);
-            border-bottom: 1px solid var(--border-color);
-            padding: 16px 0;
-        }
-
-        .stat-item .label {
-            font-size: 10px;
-            color: var(--text-light);
-            letter-spacing: 0.1em;
-            margin-bottom: 4px;
-        }
-
-        .stat-item .val {
-            font-size: 16px;
-            font-weight: 400;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .qr-section {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            background: var(--bg-color);
-            border: 1px solid var(--border-color);
-            padding: 12px 16px;
-            width: 100%;
-            margin-bottom: 24px;
-            text-align: left;
-        }
-
-        .qr-placeholder {
-            width: 48px;
-            height: 48px;
-            background: #fff;
-            border: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 9px;
-            color: var(--text-light);
-            text-align: center;
-        }
-
-        .qr-info .site-link {
-            font-size: 12px;
-            color: var(--text-color);
-            font-weight: 500;
-            text-decoration: none;
-            display: block;
-            margin-bottom: 2px;
-        }
-
-        .qr-info .sns-handle {
-            font-size: 11px;
-            color: var(--text-light);
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .modal-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            width: 100%;
-        }
-
-        #guestbook-modal {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(63, 61, 57, 0.4);
-            backdrop-filter: blur(8px);
-            z-index: 110;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-
-        #guestbook-modal.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .guestbook-card {
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
-            padding: 36px;
-            width: 480px;
-            max-width: 90%;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.05);
-            max-height: 85vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .guestbook-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .guestbook-title {
-            font-size: 16px;
-            font-weight: 400;
-            letter-spacing: 0.05em;
-        }
-
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 18px;
-            cursor: pointer;
-            color: var(--text-light);
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .textarea-wrap {
-            position: relative;
-        }
-
-        textarea {
-            width: 100%;
-            height: 100px;
-            background: var(--bg-color);
-            border: 1px solid var(--border-color);
-            padding: 12px;
-            font-size: 13px;
-            color: var(--text-color);
-            resize: none;
-            outline: none;
-        }
-
-        textarea:focus {
-            border-color: var(--text-color);
-        }
-
-        .char-counter {
-            position: absolute;
-            bottom: 8px;
-            right: 12px;
-            font-size: 10px;
-            color: var(--text-light);
-            font-variant-numeric: tabular-nums;
-        }
-
-        .guestbook-list {
-            flex: 1;
-            overflow-y: auto;
-            margin-top: 16px;
-            border-top: 1px solid var(--border-color);
-            padding-top: 16px;
-            max-height: 200px;
-        }
-
-        .guestbook-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .guestbook-profile {
-            width: 32px;
-            height: 32px;
-            background: var(--bg-color);
-            border: 1px solid var(--border-color);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-
-        .guestbook-profile img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-
-        .guestbook-content {
-            flex: 1;
-        }
-
-        .guestbook-info {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 4px;
-        }
-
-        .guestbook-author {
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .guestbook-text {
-            font-size: 12px;
-            color: var(--text-color);
-            line-height: 1.4;
-            word-break: break-all;
-        }
-
-        #contact-modal {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(63, 61, 57, 0.4);
-            backdrop-filter: blur(8px);
-            z-index: 120;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-        #contact-modal.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .contact-card {
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
-            padding: 36px;
-            width: 380px;
-            max-width: 90%;
-            text-align: center;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.05);
-        }
-
-        .nav-link-btn {
-            background: none;
-            border: none;
-            font-size: 12px;
-            color: var(--text-light);
-            cursor: pointer;
-            text-decoration: underline;
-            padding: 4px;
-        }
-        .nav-link-btn:hover {
-            color: var(--text-color);
-        }
-    </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon-es/0.20.0/cannon-es.min.js"></script>
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #CCCCCC;
+    }
+  </style>
 </head>
-<body>
+<body class="relative select-none">
 
-    <div id="canvas-container"></div>
+  <!-- 3D 캔버스 영역 -->
+  <div id="canvas-container"></div>
 
-    <div id="intro-screen">
-        <div class="intro-box">
-            <h1 class="intro-title">돌탑</h1>
-            <p class="intro-desc">고요한 강가에서 마음을 모아 돌을 쌓아 올립니다.<br>마우스로 드래그하여 탑을 완성하세요.</p>
-            <input type="text" id="nickname-input" class="nickname-input" placeholder="성함 또는 닉네임을 입력하세요" maxlength="12" onkeydown="if(event.key==='Enter') window.startGameNow()">
-            <button class="btn" id="start-btn" type="button" onclick="window.startGameNow()">시작하기</button>
-        </div>
+  <!-- =========================================================
+       1. 시작 화면 (인트로)
+       ========================================================= -->
+  <section id="intro-screen" class="fixed inset-0 z-50 flex flex-col justify-between p-7 md:p-14 bg-[#ECECEC]/90 backdrop-blur-[3px] fade-layer">
+    <div class="flex justify-between items-center text-xs text-[#666666]">
+      <span class="tracking-widest">고요한 강가의 기록</span>
+      <div class="flex items-center space-x-3">
+        <button type="button" onclick="window.openGuestbookModal()" class="text-link-btn">마음 남기기 목록</button>
+        <span class="text-[#DCDCDC]">|</span>
+        <button type="button" onclick="window.openContactModal()" class="text-link-btn">문의하기</button>
+      </div>
     </div>
 
-    <div class="ui-layer" id="ui-layer">
-        <div class="hud" id="hud">
-            <div class="hud-group">
-                <span class="hud-label">BUILDER</span>
-                <span class="hud-value" id="display-name">참가자</span>
-            </div>
-            <div class="hud-group" style="text-align: center;">
-                <span class="hud-label">STACKED STONES</span>
-                <span class="hud-value" id="display-count">0 개</span>
-            </div>
-            <div class="hud-group" style="text-align: right;">
-                <span class="hud-label">ACTIONS</span>
-                <button class="nav-link-btn interactive" id="open-contact-from-game">문의하기</button>
-            </div>
+    <div class="my-auto mx-auto w-full max-w-sm text-center bg-[#FFFFFF]/95 border border-[#DCDCDC] p-8 md:p-10 shadow-sm">
+      <h1 class="serif-title text-3xl md:text-4xl font-normal tracking-wide text-[#1A1A1A] mb-3">돌탑</h1>
+      <p class="text-xs md:text-sm text-[#666666] leading-relaxed mb-9 font-light">
+        강가에 흩어진 다양한 모양의 돌을 집어 올려<br />
+        중앙의 받침돌 위에 차분히 포개어 보세요.<br />
+        자리를 잡은 돌이 바닥으로 떨어지면 기록이 끝납니다.
+      </p>
+
+      <div class="space-y-6">
+        <div>
+          <input
+            id="nickname-input"
+            type="text"
+            maxlength="16"
+            placeholder="성함 또는 닉네임을 입력하세요"
+            onfocus="this.placeholder=''"
+            onblur="if(!this.value) this.placeholder='성함 또는 닉네임을 입력하세요'"
+            onkeydown="if(event.key==='Enter'){ event.preventDefault(); window.startDoltopGame(); }"
+            autocomplete="off"
+            class="nickname-field w-full bg-transparent border-0 border-b border-[#1A1A1A] py-3 text-center text-sm text-[#1A1A1A] focus:outline-none transition-colors"
+          />
         </div>
 
-        <div class="control-panel" id="control-panel">
-            <div class="action-group">
-                <div class="help-text">마우스 드래그로 돌을 움직여 쌓아주세요 (시점 회전 가능)</div>
-            </div>
-            <div class="action-group">
-                <button class="btn btn-outline interactive" id="extra-stone-btn">돌 더 가져오기 (3)</button>
-                <button class="btn interactive" id="finish-btn">이만 마치고 기록하기</button>
-                <button class="sound-btn interactive" id="sound-toggle">소리 켜기</button>
-            </div>
-        </div>
+        <button
+          id="start-btn"
+          type="button"
+          onclick="window.startDoltopGame()"
+          class="calm-btn calm-btn-primary w-full py-3.5 text-sm"
+        >
+          시작하기
+        </button>
+      </div>
     </div>
 
-    <div id="result-modal">
-        <div class="modal-card">
-            <div class="silhouette-preview" id="silhouette-preview-box"></div>
-            <div class="result-title" id="result-title-text">돌탑 쌓기 완료</div>
-            <div class="result-subtitle" id="result-time-text">소요 시간 00m 00s</div>
+    <div class="text-center text-[11px] text-[#666666] tracking-wider">
+      돌 드래그: 이동 · 마우스 휠: 돌 기울기 조절 · 빈 배경 드래그: 360° 시점 회전
+    </div>
+  </section>
 
-            <div class="result-stats">
-                <div class="stat-item">
-                    <div class="label">TOTAL STONES</div>
-                    <div class="val" id="res-stones">0 개</div>
-                </div>
-                <div class="stat-item">
-                    <div class="label">MAX HEIGHT</div>
-                    <div class="val" id="res-height">0.0 cm</div>
-                </div>
-            </div>
-
-            <div class="qr-section">
-                <div class="qr-placeholder" id="qr-code-area">QR</div>
-                <div class="qr-info">
-                    <a href="https://jaeyngw00.github.io/doltop/" class="site-link" target="_blank">돌탑 온라인 전시 사이트</a>
-                    <div class="sns-handle">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-                        @jaeyngwoo
-                    </div>
-                </div>
-            </div>
-
-            <div class="modal-buttons">
-                <button class="btn interactive" id="download-png-btn">사진으로 간직하기 (PNG)</button>
-                <button class="btn btn-outline interactive" id="go-guestbook-btn">마음 남기기</button>
-                <button class="btn btn-outline interactive" id="retry-btn">처음부터 다시 하기</button>
-            </div>
+  <!-- =========================================================
+       2. 게임 플레이 HUD
+       ========================================================= -->
+  <div id="game-hud" class="fixed inset-0 z-20 pointer-events-none flex flex-col justify-between p-5 md:p-10 opacity-0 invisible fade-layer">
+    <!-- 상단 정보 바 -->
+    <div class="flex justify-between items-start">
+      <div class="bg-[#FFFFFF]/90 backdrop-blur-sm border border-[#DCDCDC] px-5 py-3.5 pointer-events-auto">
+        <div class="flex items-baseline space-x-6">
+          <div>
+            <span class="text-[10px] text-[#8C8C8C] block mb-0.5">쌓은 이</span>
+            <span id="hud-builder" class="text-sm font-normal text-[#1A1A1A]">참가자</span>
+          </div>
+          <div>
+            <span class="text-[10px] text-[#8C8C8C] block mb-0.5">올라간 돌</span>
+            <span id="hud-stones" class="text-xl font-normal tabular-nums text-[#1A1A1A]">0</span>
+            <span class="text-xs text-[#666666] ml-0.5">개</span>
+          </div>
+          <div>
+            <span class="text-[10px] text-[#8C8C8C] block mb-0.5">최고 높이</span>
+            <span id="hud-height" class="text-xl font-normal tabular-nums text-[#1A1A1A]">0.0</span>
+            <span class="text-xs text-[#666666] ml-0.5">cm</span>
+          </div>
         </div>
+        <p id="hud-guide-msg" class="text-[11px] text-[#666666] mt-2 pt-2 border-t border-[#DCDCDC]">
+          강가 주변의 돌을 마우스로 끌어 중앙 받침돌 위에 올려보세요
+        </p>
+      </div>
+
+      <div class="flex flex-col items-end space-y-2 pointer-events-auto">
+        <div class="bg-[#FFFFFF]/90 backdrop-blur-sm border border-[#DCDCDC] px-4 py-2.5 flex items-center space-x-3 text-xs">
+          <button id="bgm-btn" type="button" onclick="window.toggleDoltopSound()" class="text-[#1A1A1A] hover:underline">소리 켜짐</button>
+          <span class="text-[#DCDCDC]">|</span>
+          <button type="button" onclick="window.openGuestbookModal()" class="text-[#666666] hover:text-[#1A1A1A]">마음 남기기</button>
+          <span class="text-[#DCDCDC]">|</span>
+          <button type="button" onclick="window.openContactModal()" class="text-[#666666] hover:text-[#1A1A1A]">문의하기</button>
+          <span class="text-[#DCDCDC]">|</span>
+          <div>
+            <span class="text-[10px] text-[#8C8C8C] mr-1">남은 시간</span>
+            <span id="hud-timer" class="tabular-nums text-[#1A1A1A] font-normal">03:00</span>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div id="guestbook-modal">
-        <div class="guestbook-card">
-            <div class="guestbook-header">
-                <div class="guestbook-title">마음 남기기 방명록</div>
-                <button class="close-btn interactive" id="close-guestbook">&times;</button>
-            </div>
-            <div class="form-group">
-                <div class="textarea-wrap">
-                    <textarea id="guestbook-input" placeholder="돌탑을 쌓으며 느낀 감상을 77자 이내로 적어주세요." maxlength="77"></textarea>
-                    <div class="char-counter"><span id="char-count">0</span>/77자</div>
-                </div>
-                <button class="btn interactive" id="submit-guestbook" style="margin-top: 8px;">마음 새기기</button>
-            </div>
-            <div class="guestbook-list" id="guestbook-list-container"></div>
-        </div>
-    </div>
+    <!-- 하단 컨트롤 바 -->
+    <div class="flex flex-col sm:flex-row justify-between items-center gap-3 bg-[#FFFFFF]/90 backdrop-blur-sm border border-[#DCDCDC] px-5 py-3.5 pointer-events-auto">
+      <div class="flex items-center space-x-3 text-xs text-[#666666]">
+        <span>빈 화면을 마우스로 끌면 메인 돌 주변을 360° 둘러볼 수 있습니다</span>
+        <button type="button" onclick="window.resetCameraAngle()" class="text-[11px] text-[#1A1A1A] border border-[#DCDCDC] bg-[#F4F4F4] px-2.5 py-1 hover:bg-[#E2E2E2]">
+          정면 시점
+        </button>
+      </div>
 
-    <div id="contact-modal">
-        <div class="contact-card">
-            <div class="guestbook-header" style="margin-bottom: 16px;">
-                <div class="guestbook-title">문의 및 연락처</div>
-                <button class="close-btn interactive" id="close-contact">&times;</button>
+      <div class="flex items-center space-x-2.5 w-full sm:w-auto justify-end">
+        <button id="add-stone-btn" type="button" onclick="window.spawnMoreStones()" class="calm-btn py-2 px-4 text-xs tabular-nums">
+          돌 더 가져오기 (3)
+        </button>
+        <button type="button" onclick="window.finishGameVoluntarily()" class="calm-btn calm-btn-primary py-2 px-5 text-xs">
+          이만 마치고 기록하기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       3. 결과 팝업창 (2D 실루엣 + 마음 남기기 권유 + 링크/QR)
+       ========================================================= -->
+  <section id="result-modal" class="fixed inset-0 z-40 flex items-center justify-center p-4 md:p-8 bg-[#1A1A1A]/40 backdrop-blur-[4px] opacity-0 invisible fade-layer overflow-y-auto">
+    <div class="my-auto flex flex-col items-center w-full max-w-[460px] bg-[#FFFFFF] border border-[#DCDCDC] p-6 sm:p-8 shadow-lg">
+
+      <!-- 마음 남기기 꼭 해달라는 상단 알림 배너 -->
+      <div id="guestbook-nudge-banner" class="nudge-badge w-full bg-[#F4F4F4] border border-[#CCCCCC] px-4 py-3 mb-5 flex items-center justify-between">
+        <div class="text-left">
+          <p class="text-xs font-medium text-[#1A1A1A]">소중한 돌탑이 완성되었습니다.</p>
+          <p class="text-[11px] text-[#666666] mt-0.5">떠나시기 전에 꼭 <b>‘마음 남기기’</b>에 짧은 흔적을 남겨주세요.</p>
+        </div>
+        <button type="button" onclick="window.openGuestbookFromResult()" class="calm-btn calm-btn-primary py-1.5 px-3 text-[11px] shrink-0 ml-3">
+          마음 남기기
+        </button>
+      </div>
+
+      <!-- 1:1 정사각형 아카이브 포스터 프리뷰 -->
+      <div id="poster-card" class="relative w-full aspect-square bg-[#FFFFFF] border border-[#DCDCDC] p-6 flex flex-col justify-between overflow-hidden">
+        <!-- 배경 2D 블랙 돌탑 실루엣 -->
+        <div class="absolute inset-0 pointer-events-none flex items-center justify-center z-0 p-8">
+          <img id="result-silhouette-img" alt="내가 쌓은 돌탑 실루엣" class="w-full h-full object-contain opacity-95" />
+        </div>
+
+        <!-- 포스터 상단 헤더 -->
+        <div class="relative z-10 flex justify-between items-start border-b border-[#DCDCDC] pb-3 bg-[#FFFFFF]/85 backdrop-blur-[1px]">
+          <div class="text-left">
+            <p id="result-status-label" class="text-[10px] text-[#8C8C8C] mb-0.5">고요히 쌓아 올린 기록</p>
+            <h3 class="serif-title text-base text-[#1A1A1A] font-normal">강가의 돌탑</h3>
+          </div>
+          <div class="text-right flex space-x-4">
+            <div>
+              <span class="text-[10px] text-[#8C8C8C] block">쌓은 돌</span>
+              <span id="res-count" class="text-base tabular-nums text-[#1A1A1A] font-normal">0개</span>
             </div>
-            <p class="intro-desc" style="margin-bottom: 20px;">프로젝트 관련 문의사항은 아래 인스타그램을 통해 연락해 주세요.</p>
-            <div class="qr-section" style="justify-content: center; text-align: center; margin-bottom: 20px;">
-                <div class="qr-placeholder" style="width: 70px; height: 70px;" id="contact-qr">QR</div>
+            <div>
+              <span class="text-[10px] text-[#8C8C8C] block">최고 높이</span>
+              <span id="res-height" class="text-base tabular-nums text-[#1A1A1A] font-normal">0.0cm</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="relative z-10 flex-1"></div>
+
+        <!-- 포스터 하단 시간 및 닉네임 메타데이터 -->
+        <div class="relative z-10 border-t border-[#DCDCDC] pt-3 bg-[#FFFFFF]/90 backdrop-blur-[1px] text-left">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
+            <div>
+              <span class="text-[#8C8C8C] block">쌓은 이</span>
+              <span id="res-builder" class="text-[#1A1A1A] font-normal truncate block mt-0.5">—</span>
+            </div>
+            <div>
+              <span class="text-[#8C8C8C] block">시작 시간</span>
+              <span id="res-start-time" class="text-[#1A1A1A] tabular-nums block mt-0.5">—</span>
+            </div>
+            <div>
+              <span class="text-[#8C8C8C] block">완성 시간</span>
+              <span id="res-end-time" class="text-[#1A1A1A] tabular-nums block mt-0.5">—</span>
+            </div>
+            <div>
+              <span class="text-[#8C8C8C] block">걸린 시간</span>
+              <span id="res-duration" class="text-[#1A1A1A] tabular-nums block mt-0.5">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 액션 버튼들 -->
+      <div class="w-full grid grid-cols-3 gap-2 mt-4">
+        <button type="button" onclick="window.downloadPosterPNG()" class="calm-btn calm-btn-primary py-3 text-xs">
+          사진으로 남기기
+        </button>
+        <button type="button" onclick="window.openGuestbookFromResult()" class="calm-btn calm-btn-accent py-3 text-xs font-normal">
+          마음 남기기 (필수)
+        </button>
+        <button type="button" onclick="window.restartDoltopGame()" class="calm-btn py-3 text-xs">
+          다시 쌓기
+        </button>
+      </div>
+
+      <!-- 사진으로 남기기 아래: 돌탑 사이트 링크 + QR 코드 + 인스타그램 @jaeyngwoo -->
+      <div class="w-full mt-4 pt-4 border-t border-[#DCDCDC] flex items-center justify-between gap-3 bg-[#F4F4F4] p-3.5">
+        <div class="flex items-center space-x-3 text-left">
+          <div class="w-14 h-14 bg-[#FFFFFF] border border-[#DCDCDC] p-1 shrink-0 flex items-center justify-center">
+            <canvas id="result-site-qr" width="100" height="100" class="w-full h-full"></canvas>
+          </div>
+          <div class="space-y-1">
+            <a href="https://jaeyngw00.github.io/dolltop/" target="_blank" rel="noopener noreferrer" class="text-xs font-normal text-[#1A1A1A] hover:underline block">
+              돌탑 사이트 바로가기 ↗
+            </a>
+            <span class="text-[10px] text-[#8C8C8C] block">https://jaeyngw00.github.io/dolltop/</span>
+            <a href="https://instagram.com/jaeyngwoo" target="_blank" rel="noopener noreferrer" class="inline-flex items-center space-x-1 text-[11px] text-[#1A1A1A] hover:underline pt-0.5">
+              <svg class="w-3.5 h-3.5 text-[#1A1A1A]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+              </svg>
+              <span>@jaeyngwoo</span>
+            </a>
+          </div>
+        </div>
+        <button type="button" onclick="window.openContactModal()" class="text-[11px] text-[#666666] hover:text-[#1A1A1A] underline shrink-0">
+          문의 페이지
+        </button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- =========================================================
+       4. 마음 남기기 (후기 아카이브 모달/페이지 - 77자 제한, 삭제 불가, 2D 실루엣 프로필)
+       ========================================================= -->
+  <section id="guestbook-modal" class="fixed inset-0 z-50 bg-[#ECECEC] opacity-0 invisible fade-layer overflow-y-auto">
+    <div class="min-h-full max-w-2xl mx-auto px-6 py-10 md:py-16 flex flex-col justify-between">
+      <div>
+        <div class="border-b border-[#DCDCDC] pb-5 flex justify-between items-end">
+          <div>
+            <p class="text-xs text-[#8C8C8C] mb-1">돌탑과 함께 새겨지는 일흔일곱 자의 기록</p>
+            <h2 class="serif-title text-2xl md:text-3xl text-[#1A1A1A] font-normal">마음 남기기</h2>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button type="button" onclick="window.openContactModal()" class="calm-btn py-2 px-3.5 text-xs">문의하기</button>
+            <button type="button" onclick="window.closeGuestbookModal()" class="calm-btn py-2 px-4 text-xs">돌아가기</button>
+          </div>
+        </div>
+
+        <!-- 작성 폼 -->
+        <div class="bg-[#FFFFFF] border border-[#DCDCDC] p-5 md:p-7 mt-7">
+          <form id="guestbook-form" onsubmit="event.preventDefault(); window.submitGuestbookEntry();" class="space-y-4">
+            <div class="flex justify-between items-center">
+              <div class="flex items-center space-x-3">
+                <!-- 자신이 쌓은 돌탑 2D 실루엣 프로필 -->
+                <div class="w-11 h-11 bg-[#F4F4F4] border border-[#DCDCDC] flex items-center justify-center overflow-hidden shrink-0">
+                  <img id="guestbook-my-silhouette" alt="내 돌탑 프로필" class="w-full h-full object-contain p-1" />
+                </div>
                 <div>
-                    <a href="https://instagram.com/jaeyngwoo" target="_blank" class="site-link" style="font-size: 14px; font-weight: 600;">@jaeyngwoo 인스타그램</a>
-                    <span style="font-size: 11px; color: var(--text-light);">클릭시 프로필로 이동합니다</span>
+                  <span class="text-[10px] text-[#8C8C8C] block">작성자 (내 돌탑 실루엣 프로필)</span>
+                  <input id="guestbook-author" type="text" readonly value="참가자" class="bg-transparent text-sm text-[#1A1A1A] font-normal focus:outline-none cursor-default" />
                 </div>
+              </div>
+              <span id="guestbook-my-stats" class="text-xs tabular-nums text-[#666666]">0개 · 0.0cm</span>
             </div>
-            <button class="btn btn-outline interactive" id="back-from-contact">돌아가기</button>
+
+            <textarea
+              id="guestbook-textarea"
+              rows="2"
+              maxlength="77"
+              placeholder="돌을 쌓으며 스쳐간 마음을 공백 포함 77자 이내로 남겨주세요. 한 번 남긴 글은 지울 수 없습니다."
+              onfocus="this.placeholder=''"
+              onblur="if(!this.value) this.placeholder='돌을 쌓으며 스쳐간 마음을 공백 포함 77자 이내로 남겨주세요. 한 번 남긴 글은 지울 수 없습니다.'"
+              oninput="window.updateGuestbookCharCount(this)"
+              class="w-full bg-[#F4F4F4] border border-[#DCDCDC] p-3.5 text-sm text-[#1A1A1A] focus:outline-none focus:border-[#1A1A1A] resize-none leading-relaxed font-light"
+            ></textarea>
+
+            <div class="flex justify-between items-center pt-1">
+              <span id="guestbook-notice" class="text-[11px] text-[#8C8C8C]">작성된 글은 영구히 기록되며 삭제할 수 없습니다.</span>
+              <div class="flex items-center space-x-4">
+                <span id="guestbook-char-count" class="text-xs tabular-nums text-[#666666]">0 / 77</span>
+                <button type="submit" class="calm-btn calm-btn-primary py-2 px-6 text-xs">마음 새기기</button>
+              </div>
+            </div>
+          </form>
         </div>
+
+        <!-- 후기 리스트 (예시 글 2개 완전 삭제됨) -->
+        <div class="mt-10">
+          <div class="flex justify-between items-baseline border-b border-[#DCDCDC] pb-2.5 mb-2">
+            <span class="text-xs text-[#666666]">남겨진 마음들</span>
+            <span id="guestbook-total" class="text-xs tabular-nums text-[#8C8C8C]">총 0개의 기록</span>
+          </div>
+          <div id="guestbook-list" class="divide-y divide-[#DCDCDC]"></div>
+        </div>
+      </div>
+
+      <footer class="mt-14 pt-5 border-t border-[#DCDCDC] flex justify-between items-center text-[11px] text-[#8C8C8C]">
+        <span>돌탑 — 고요한 강가의 기록</span>
+        <a href="https://instagram.com/jaeyngwoo" target="_blank" rel="noopener noreferrer" class="hover:text-[#1A1A1A] inline-flex items-center space-x-1">
+          <span>Instagram @jaeyngwoo</span>
+        </a>
+      </footer>
     </div>
+  </section>
 
-    <canvas id="export-canvas" width="1080" height="1080" style="display:none;"></canvas>
+  <!-- =========================================================
+       5. 문의하기 페이지 모달 (@jaeyngwoo 링크 및 QR코드)
+       ========================================================= -->
+  <section id="contact-modal" class="fixed inset-0 z-50 flex items-center justify-center p-5 bg-[#1A1A1A]/40 backdrop-blur-[4px] opacity-0 invisible fade-layer">
+    <div class="bg-[#FFFFFF] border border-[#DCDCDC] p-7 sm:p-9 w-full max-w-sm text-center shadow-lg">
+      <div class="flex justify-between items-center border-b border-[#DCDCDC] pb-3.5 mb-6">
+        <h3 class="serif-title text-lg text-[#1A1A1A] font-normal">문의하기</h3>
+        <button type="button" onclick="window.closeContactModal()" class="text-sm text-[#666666] hover:text-[#1A1A1A] px-1">✕</button>
+      </div>
 
-    <script>
-        let scene, camera, renderer, controls;
-        let world;
-        let physicsBodies = [];
-        let renderMeshes = [];
-        let currentActiveStone = null;
-        let isDragging = false;
-        let raycaster, mouse;
-        let planeZ;
-        
-        let userName = "참가자";
-        let startTime = null;
-        let isGameStarted = false;
-        let isGameOver = false;
-        let extraStoneCount = 3;
-        let stackedStonesCount = 0;
-        let maxTowerHeight = 0.0;
-        let currentSilhouetteDataUrl = "";
-        let audioCtx = null;
-        let isAudioPlaying = false;
-        let audioInterval = null;
+      <p class="text-xs text-[#666666] leading-relaxed mb-6 font-light">
+        돌탑 웹 전시 및 프로젝트 관련 문의는<br />
+        아래 인스타그램 계정으로 편하게 연락해 주세요.
+      </p>
 
-        let mainStoneBody = null;
-        let mainStoneMesh = null;
+      <div class="bg-[#F4F4F4] border border-[#DCDCDC] p-6 flex flex-col items-center space-y-4 mb-6">
+        <div class="w-32 h-32 bg-[#FFFFFF] border border-[#DCDCDC] p-2 flex items-center justify-center">
+          <canvas id="contact-insta-qr" width="160" height="160" class="w-full h-full"></canvas>
+        </div>
 
-        let guestbookEntries = [];
-        const stoneColors = [0x5A564E, 0x4A4740, 0x6E6A60, 0x7A756B, 0x535048, 0x45423C];
+        <a
+          href="https://instagram.com/jaeyngwoo"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center space-x-2 text-sm font-normal text-[#1A1A1A] hover:underline pt-1"
+        >
+          <svg class="w-4 h-4 text-[#1A1A1A]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+          </svg>
+          <span>@jaeyngwoo</span>
+        </a>
+        <span class="text-[11px] text-[#8C8C8C]">https://instagram.com/jaeyngwoo</span>
+      </div>
 
-        function initAudio() {
-            if (audioCtx) return;
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      <div class="flex flex-col space-y-2">
+        <a
+          href="https://instagram.com/jaeyngwoo"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="calm-btn calm-btn-primary w-full py-3 text-xs"
+        >
+          인스타그램 프로필 열기 ↗
+        </a>
+        <button type="button" onclick="window.closeContactModal()" class="calm-btn w-full py-2.5 text-xs">
+          닫기
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       MAIN JAVASCRIPT (오류 없는 단일 스크립트)
+       ========================================================= -->
+  <script>
+    (function () {
+      'use strict';
+
+      const SITE_URL = 'https://jaeyngw00.github.io/dolltop/';
+      const INSTA_URL = 'https://instagram.com/jaeyngwoo';
+      const INSTA_HANDLE = '@jaeyngwoo';
+      const GUESTBOOK_STORAGE_KEY = 'DOLLTOP_GUESTBOOK_CLEAN_V2';
+
+      // --- 1. 잔잔한 명상 배경음악 합성기 (Web Audio API) ---
+      class CalmSoundEngine {
+        constructor() {
+          this.ctx = null;
+          this.masterGain = null;
+          this.isMuted = false;
+          this.timer = null;
+          this.notes = [146.83, 164.81, 196.00, 220.00, 261.63, 293.66, 329.63, 392.00];
+          this.step = 0;
         }
 
-        function toggleSound() {
-            initAudio();
-            if (isAudioPlaying) {
-                if (audioCtx && audioCtx.state === 'running') {
-                    audioCtx.suspend();
-                }
-                isAudioPlaying = false;
-                document.getElementById('sound-toggle').innerText = "소리 켜기";
-            } else {
-                if (audioCtx) {
-                    audioCtx.resume();
-                }
-                playAmbientStream();
-                isAudioPlaying = true;
-                document.getElementById('sound-toggle').innerText = "소리 끄기";
+        start() {
+          try {
+            if (this.ctx) {
+              if (this.ctx.state === 'suspended') this.ctx.resume();
+              return;
             }
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+
+            this.ctx = new AudioCtx();
+            this.masterGain = this.ctx.createGain();
+            this.masterGain.gain.setValueAtTime(0.01, this.ctx.currentTime);
+            this.masterGain.gain.linearRampToValueAtTime(0.26, this.ctx.currentTime + 2.0);
+            this.masterGain.connect(this.ctx.destination);
+
+            this.startBreeze();
+            this.startLoop();
+          } catch (e) {}
         }
 
-        function playAmbientStream() {
-            if (!audioCtx) return;
-            const notes = [130.81, 146.83, 164.81, 196.00, 220.00, 261.63, 293.66];
-            if (audioInterval) clearInterval(audioInterval);
-            audioInterval = setInterval(() => {
-                if (!isAudioPlaying) return;
-                try {
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    const freq = notes[Math.floor(Math.random() * notes.length)];
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                    gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.04, audioCtx.currentTime + 2);
-                    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 7);
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-                    osc.start();
-                    osc.stop(audioCtx.currentTime + 7.5);
-                } catch(e) {}
-            }, 3500);
+        startBreeze() {
+          if (!this.ctx) return;
+          const len = this.ctx.sampleRate * 3;
+          const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+          const data = buf.getChannelData(0);
+          let last = 0;
+          for (let i = 0; i < len; i++) {
+            const white = Math.random() * 2 - 1;
+            last = (last + 0.02 * white) / 1.02;
+            data[i] = last * 0.14;
+          }
+          const src = this.ctx.createBufferSource();
+          src.buffer = buf;
+          src.loop = true;
+
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.value = 320;
+
+          const gain = this.ctx.createGain();
+          gain.gain.value = 0.18;
+
+          src.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.masterGain);
+          src.start();
         }
 
-        // --- 핵심 수정: 시작 버튼 누를 때 3D 엔진 및 첫 돌 스폰이 무조건 안전하게 실행되도록 보장 ---
-        window.startGameNow = function() {
-            if (isGameStarted) return;
-            const input = document.getElementById('nickname-input').value.trim();
-            if (input) userName = input;
-            document.getElementById('display-name').innerText = userName;
+        startLoop() {
+          const seq = [0, 2, 4, 3, 5, 2, 6, 4];
+          const playStep = () => {
+            if (!this.ctx || this.isMuted) return;
+            const freq = this.notes[seq[this.step % seq.length]];
+            this.step++;
+            this.triggerTone(freq, 3.4, 0.1);
+          };
+          playStep();
+          this.timer = setInterval(playStep, 2600);
+        }
 
-            const introScreen = document.getElementById('intro-screen');
-            if (introScreen) {
-                introScreen.style.opacity = '0';
-                setTimeout(() => {
-                    introScreen.style.display = 'none';
-                    introScreen.style.pointerEvents = 'none';
-                }, 1000);
+        triggerTone(freq, dur, vol) {
+          if (!this.ctx || this.isMuted) return;
+          try {
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now);
+
+            gain.gain.setValueAtTime(0.0001, now);
+            gain.gain.linearRampToValueAtTime(vol, now + 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+            osc.start(now);
+            osc.stop(now + dur + 0.05);
+          } catch (e) {}
+      // --- 4. 5가지 서로 다른 조형적 형태(Archetype)를 가진 무채색 3D 강돌 생성 ---
+      function createRiverStone(radius, seed, isBase, archetypeIndex) {
+        const geo = new THREE.IcosahedronGeometry(radius, 3);
+        const pos = geo.attributes.position;
+
+        // 5가지 조형 타입 결정 (0: 넓적한 판석, 1: 길쭉한 강돌, 2: 모난 쐐기석, 3: 비대칭 조형석, 4: 묵직한 각석)
+        const type = isBase ? -1 : (typeof archetypeIndex === 'number' ? archetypeIndex % 5 : Math.floor(Math.abs(Math.sin(seed * 9.1)) * 5));
+
+        let scaleX = 1.0, scaleY = 0.6, scaleZ = 1.0;
+        if (isBase) {
+          scaleX = 2.6;
+          scaleY = 0.52;
+          scaleZ = 2.25;
+        } else if (type === 0) {
+          // Type A: 넓적한 판석 (Flat River Slab)
+          scaleX = 1.42 + (Math.abs(Math.sin(seed)) * 0.22);
+          scaleY = 0.38 + (Math.abs(Math.cos(seed * 2.1)) * 0.1);
+          scaleZ = 1.28 + (Math.abs(Math.sin(seed * 3.7)) * 0.2);
+        } else if (type === 1) {
+          // Type B: 길쭉한 강돌 (Elongated Cobble)
+          scaleX = 1.68 + (Math.abs(Math.cos(seed * 1.7)) * 0.25);
+          scaleY = 0.56 + (Math.abs(Math.sin(seed * 2.9)) * 0.12);
+          scaleZ = 0.76 + (Math.abs(Math.cos(seed * 4.3)) * 0.14);
+        } else if (type === 2) {
+          // Type C: 모난 쐐기석 (Angular Wedge)
+          scaleX = 1.22 + (Math.abs(Math.sin(seed * 5.1)) * 0.2);
+          scaleY = 0.66 + (Math.abs(Math.cos(seed * 3.3)) * 0.16);
+          scaleZ = 1.12 + (Math.abs(Math.sin(seed * 2.2)) * 0.18);
+        } else if (type === 3) {
+          // Type D: 비대칭 유기적 조형석 (Organic Asymmetric)
+          scaleX = 1.15 + (Math.abs(Math.cos(seed * 6.4)) * 0.35);
+          scaleY = 0.62 + (Math.abs(Math.sin(seed * 4.1)) * 0.18);
+          scaleZ = 1.32 + (Math.abs(Math.cos(seed * 2.7)) * 0.25);
+        } else {
+          // Type E: 묵직한 각석 (Blocky Pillar)
+          scaleX = 0.94 + (Math.abs(Math.sin(seed * 3.9)) * 0.16);
+          scaleY = 0.84 + (Math.abs(Math.cos(seed * 5.5)) * 0.16);
+          scaleZ = 0.92 + (Math.abs(Math.sin(seed * 7.1)) * 0.16);
+        }
+
+        const v = new THREE.Vector3();
+        let maxX = 0, maxY = 0, maxZ = 0;
+
+        for (let i = 0; i < pos.count; i++) {
+          v.fromBufferAttribute(pos, i);
+          const dir = v.clone().normalize();
+
+          // 기본 다중 주파수 노이즈
+          const n1 = Math.sin(dir.x * 2.6 + seed) * Math.cos(dir.y * 2.6 - seed) * Math.sin(dir.z * 2.6 + seed);
+          const n2 = Math.cos(dir.x * 5.2 - seed * 1.7) * Math.sin(dir.z * 5.2 + seed * 1.3) * 0.35;
+          let mod = isBase ? (1 + n1 * 0.06) : (1 + n1 * 0.14 + n2 * 0.08);
+
+          if (!isBase) {
+            if (type === 0) {
+              // 넓적한 판석: 상하단 면을 평평하게 눌러 안정감 부여
+              if (Math.abs(dir.y) > 0.42) {
+                v.y *= 0.72;
+              }
+            } else if (type === 1) {
+              // 길쭉한 강돌: 양 끝단이 완만하게 좁아지는 조약돌 형태
+              const taper = 1.0 - 0.18 * Math.pow(Math.abs(dir.x), 1.6);
+              v.y *= taper;
+              v.z *= taper;
+            } else if (type === 2) {
+              // 모난 쐐기석: 한쪽이 두껍고 반대쪽이 깎여나간 비대칭 경사 + 각진 면
+              const wedge = 1.0 + dir.x * 0.26 - dir.z * 0.14;
+              v.y *= wedge;
+              // 능선을 각지게 양자화
+              v.x = Math.round(v.x * 7) / 7;
+              v.z = Math.round(v.z * 7) / 7;
+            } else if (type === 3) {
+              // 비대칭 조형석: 뚜렷한 굴곡과 비틀림
+              const ridge = Math.sin(dir.x * 3.8 + dir.z * 2.9 + seed) * 0.18;
+              mod += ridge;
+              v.x += dir.y * 0.12 * radius;
+            } else if (type === 4) {
+              // 묵직한 각석: 육면체에 가깝게 모서리를 다듬음
+              v.x = Math.sign(v.x) * Math.pow(Math.abs(dir.x), 0.68) * radius;
+              v.y = Math.sign(v.y) * Math.pow(Math.abs(dir.y), 0.72) * radius;
+              v.z = Math.sign(v.z) * Math.pow(Math.abs(dir.z), 0.68) * radius;
             }
+          } else {
+            if (Math.abs(dir.y) > 0.5) v.y *= 0.82;
+          }
 
-            document.getElementById('hud').classList.add('visible');
-            document.getElementById('control-panel').classList.add('visible');
+          v.x *= scaleX * mod;
+          v.y *= scaleY * mod;
+          v.z *= scaleZ * mod;
+          pos.setXYZ(i, v.x, v.y, v.z);
 
-            startTime = Date.now();
-            isGameStarted = true;
-            initAudio();
+          if (Math.abs(v.x) > maxX) maxX = Math.abs(v.x);
+          if (Math.abs(v.y) > maxY) maxY = Math.abs(v.y);
+          if (Math.abs(v.z) > maxZ) maxZ = Math.abs(v.z);
+        }
 
-            // 게임 시작 직후 만약 첫 돌이 생성되지 않았다면 즉시 생성 보장
-            if (!currentActiveStone) {
-                spawnNewStone();
-            }
+        geo.computeVertexNormals();
+
+        // 무채색(Monochrome Black/White/Gray) 돌 팔레트
+        const monoPalette = [0x242424, 0x363636, 0x4A4A4A, 0x5E5E5E, 0x737373, 0x8A8A8A];
+        const colorHex = isBase ? 0x1F1F1F : monoPalette[Math.floor(Math.abs(Math.sin(seed * 13.7)) * monoPalette.length)];
+
+        // 각진 타입(쐐기석, 각석)은 flatShading으로 조각 같은 질감 강조
+        const useFlat = (type === 2 || type === 4);
+
+        const mat = new THREE.MeshStandardMaterial({
+          color: colorHex,
+          roughness: 0.94,
+          metalness: 0.01,
+          flatShading: useFlat
+        });
+
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+
+        // 실제 변형된 메쉬 바운딩 크기에 맞춘 물리 충돌 박스 설정
+        const halfX = Math.max(0.25, maxX * 0.76);
+        const halfY = Math.max(0.18, maxY * 0.78);
+        const halfZ = Math.max(0.25, maxZ * 0.76);
+
+        const body = new CANNON.Body({
+          mass: isBase ? 0 : Math.max(1.6, (halfX * halfY * halfZ) * 14.0),
+          material: stonePhysMat,
+          linearDamping: 0.45,
+          angularDamping: 0.68
+        });
+
+        const boxShape = new CANNON.Box(new CANNON.Vec3(halfX, halfY, halfZ));
+        body.addShape(boxShape);
+
+        return {
+          mesh,
+          body,
+          halfHeight: halfY,
+          radiusReach: Math.max(halfX, halfZ)
         };
+      }
 
-        window.addEventListener('load', () => {
-            initThreeAndPhysics();
-            setupEvents();
-            renderGuestbook();
-            generateQRCodes();
+      // --- 5. Three.js 및 Cannon.js 초기화 (차분한 무채색 공간 & 절제된 조명) ---
+      function initThreeAndPhysics() {
+        const container = document.getElementById('canvas-container');
+
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xECECEC);
+        scene.fog = new THREE.FogExp2(0xECECEC, 0.022);
+
+        camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 100);
+        updateCameraPosition();
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        // 눈부심을 없앤 차분하고 은은한 무채색 스튜디오 조명
+        const ambient = new THREE.AmbientLight(0xFFFFFF, 0.46);
+        scene.add(ambient);
+
+        const hemi = new THREE.HemisphereLight(0xFFFFFF, 0xBDBDBD, 0.24);
+        scene.add(hemi);
+
+        const sun = new THREE.DirectionalLight(0xFFFFFF, 0.48);
+        sun.position.set(7, 16, 10);
+        sun.castShadow = true;
+        sun.shadow.mapSize.width = 1024;
+        sun.shadow.mapSize.height = 1024;
+        sun.shadow.camera.near = 2;
+        sun.shadow.camera.far = 35;
+        const d = 10;
+        sun.shadow.camera.left = -d;
+        sun.shadow.camera.right = d;
+        sun.shadow.camera.top = d;
+        sun.shadow.camera.bottom = -d;
+        sun.shadow.bias = -0.0005;
+        scene.add(sun);
+
+        // 물리 월드
+        world = new CANNON.World();
+        world.gravity.set(0, -9.8, 0);
+        world.broadphase = new CANNON.NaiveBroadphase();
+        world.solver.iterations = 16;
+        world.allowSleep = true;
+
+        stonePhysMat = new CANNON.Material('stone');
+        groundPhysMat = new CANNON.Material('ground');
+
+        world.addContactMaterial(new CANNON.ContactMaterial(stonePhysMat, stonePhysMat, {
+          friction: 0.85,
+          restitution: 0.01
+        }));
+        world.addContactMaterial(new CANNON.ContactMaterial(stonePhysMat, groundPhysMat, {
+          friction: 0.9,
+          restitution: 0.01
+        }));
+
+        // 무채색 매트 바닥
+        const groundGeo = new THREE.PlaneGeometry(100, 100);
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0xE2E2E2, roughness: 0.98, metalness: 0.0 });
+        const groundMesh = new THREE.Mesh(groundGeo, groundMat);
+        groundMesh.rotation.x = -Math.PI / 2;
+        groundMesh.receiveShadow = true;
+        scene.add(groundMesh);
+
+        // 중앙 메인 돌 주변 무채색 파문 링
+        const rippleGeo = new THREE.RingGeometry(2.15, 2.2, 64);
+        const rippleMat = new THREE.MeshBasicMaterial({ color: 0xCCCCCC, side: THREE.DoubleSide });
+        const rippleMesh = new THREE.Mesh(rippleGeo, rippleMat);
+        rippleMesh.rotation.x = -Math.PI / 2;
+        rippleMesh.position.y = 0.01;
+        scene.add(rippleMesh);
+
+        const groundBody = new CANNON.Body({ mass: 0, material: groundPhysMat });
+        groundBody.addShape(new CANNON.Plane());
+        groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+        world.addBody(groundBody);
+
+        // 수직 정렬 가이드선 & 바닥 그림자 링
+        const lineGeo = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(0, 0, 0),
+          new THREE.Vector3(0, 10, 0)
+        ]);
+        guideLine = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ color: 0x555555, transparent: true, opacity: 0.35 }));
+        guideLine.visible = false;
+        scene.add(guideLine);
+
+        const ringGeo = new THREE.RingGeometry(0.18, 0.23, 32);
+        shadowCircle = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0x1A1A1A, side: THREE.DoubleSide, transparent: true, opacity: 0.35 }));
+        shadowCircle.rotation.x = -Math.PI / 2;
+        shadowCircle.position.y = 0.02;
+        shadowCircle.visible = false;
+        scene.add(shadowCircle);
+
+        initSilhouetteRenderer();
+        setupInitialStones();
+      }
+
+      function initSilhouetteRenderer() {
+        silRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+        silRenderer.setSize(SIL_SIZE, SIL_SIZE);
+        silCamera = new THREE.PerspectiveCamera(34, 1, 0.1, 50);
+        silCanvas2D = document.createElement('canvas');
+        silCanvas2D.width = SIL_SIZE;
+        silCanvas2D.height = SIL_SIZE;
+      // --- 6. 초기 돌 배치 (5가지 다양한 모양이 골고루 섞여서 안전하게 배치) ---
+      function setupInitialStones() {
+        stones.forEach(s => {
+          scene.remove(s.mesh);
+          world.removeBody(s.body);
+        });
+        stones = [];
+        draggedStone = null;
+
+        gameState.stackedCount = 0;
+        gameState.maxHeightCm = 0.0;
+        gameState.extraSpawnsLeft = 3;
+        gameState.countdownSec = 180;
+        updateHUDCounters();
+        updateExtraStoneButton();
+
+        // 1) 중앙 메인 받침돌 (고정)
+        const baseObj = createRiverStone(1.05, 12.34, true, -1);
+        baseObj.body.position.set(0, baseObj.halfHeight, 0);
+        baseObj.mesh.position.copy(baseObj.body.position);
+        scene.add(baseObj.mesh);
+        world.addBody(baseObj.body);
+
+        baseStone = {
+          id: 'MAIN_BASE',
+          mesh: baseObj.mesh,
+          body: baseObj.body,
+          halfHeight: baseObj.halfHeight,
+          radiusReach: baseObj.radiusReach,
+          isBase: true,
+          hasSettledOnTower: true,
+          settleTimer: 0
+        };
+        stones.push(baseStone);
+
+        // 2) 주변 강돌 8개를 5가지 조형 타입으로 골고루 섞어 반원형 안전 배치
+        const initialCount = 8;
+        for (let i = 0; i < initialCount; i++) {
+          const angle = -Math.PI * 0.8 + (i / (initialCount - 1)) * (Math.PI * 1.6);
+          const dist = 3.85 + (i % 2) * 0.95;
+          const x = Math.cos(angle) * dist;
+          const z = Math.sin(angle) * dist;
+          spawnSingleStoneAt(x, z, i * 19.7 + 5.1, i % 5);
+        }
+
+        capture2DSilhouette();
+      }
+
+      function spawnSingleStoneAt(x, z, seed, archetypeIndex) {
+        const radius = 0.54 + (Math.abs(Math.sin(seed)) * 0.28);
+        const st = createRiverStone(radius, seed, false, archetypeIndex);
+        const startY = st.halfHeight + 0.05;
+
+        st.body.position.set(x, startY, z);
+        st.body. quaternion.setFromEuler(0, (seed % 3.14), 0);
+        st.body.velocity.set(0, 0, 0);
+        st.body.angularVelocity.set(0, 0, 0);
+        st.mesh.position.copy(st.body.position);
+        st.mesh.quaternion.copy(st.body.quaternion);
+
+        scene.add(st.mesh);
+        world.addBody(st.body);
+
+        stones.push({
+          id: 'STONE_' + Date.now() + '_' + Math.random(),
+          mesh: st.mesh,
+          body: st.body,
+          halfHeight: st.halfHeight,
+          radiusReach: st.radiusReach,
+          isBase: false,
+          hasSettledOnTower: false,
+          settleTimer: 0
+        });
+      }
+
+      // --- 7. 카메라 위치 업데이트 (360도 회전 및 인트로 하강 모션) ---
+      function updateCameraPosition() {
+        if (!camera) return;
+        let r = orbit.radius;
+        let phi = orbit.phi;
+        let theta = orbit.theta;
+
+        if (gameState.phase === 'INTRO') {
+          r = 22;
+          phi = 0.85;
+        } else if (gameState.phase === 'CAMERA_DESCEND') {
+          const t = 1 - Math.pow(1 - orbit.introProgress, 3);
+          r = 22 + (orbit.radius - 22) * t;
+          phi = 0.85 + (orbit.phi - 0.85) * t;
+        }
+
+        const x = orbit.target.x + r * Math.sin(phi) * Math.sin(theta);
+        const y = orbit.target.y + r * Math.cos(phi);
+        const z = orbit.target.z + r * Math.sin(phi) * Math.cos(theta);
+
+        camera.position.set(x, Math.max(1.2, y), z);
+        camera.lookAt(orbit.target);
+      }
+
+      // --- 8. 마우스 / 터치 인터랙션 (돌 드래그 + 배경 드래그 시 360도 회전) ---
+      function getNormalizedPointer(e) {
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        pointer.x = (clientX / window.innerWidth) * 2 - 1;
+        pointer.y = -(clientY / window.innerHeight) * 2 + 1;
+        return { clientX, clientY };
+      }
+
+      function onPointerDown(e) {
+        if (gameState.phase !== 'PLAYING') return;
+        if (e.target !== renderer.domElement) return;
+
+        const { clientX, clientY } = getNormalizedPointer(e);
+        raycaster.setFromCamera(pointer, camera);
+
+        // 우클릭이 아닌 경우 돌 클릭 여부 먼저 확인
+        if (e.button === 0 || e.touches) {
+          const pickable = stones.filter(s => !s.isBase).map(s => s.mesh);
+          const hits = raycaster.intersectObjects(pickable, false);
+
+          if (hits.length > 0) {
+            const hitMesh = hits[0].object;
+            const stoneObj = stones.find(s => s.mesh === hitMesh);
+            if (stoneObj) {
+              draggedStone = stoneObj;
+              // 마우스로 잡고 이동하는 동안에는 아직 안착된 상태가 아니므로 게임오버 판정에서 제외
+              draggedStone.settleTimer = 0;
+              draggedStone.body.wakeUp();
+              heldQuat.copy(draggedStone.mesh.quaternion);
+
+              // 현재 카메라 시선 방향과 수직인 드래그 평면 생성
+              const camDir = new THREE.Vector3();
+              camera.getWorldDirection(camDir);
+              camDir.y = 0;
+              camDir.normalize();
+              dragPlane.setFromNormalAndCoplanarPoint(camDir, draggedStone.mesh.position);
+
+              if (raycaster.ray.intersectPlane(dragPlane, intersectPt)) {
+                targetDragPos.copy(intersectPt);
+              }
+
+              guideLine.visible = true;
+              shadowCircle.visible = true;
+              document.getElementById('hud-guide-msg').textContent = '마우스 휠을 굴리면 돌의 기울기를 미세하게 조절할 수 있습니다';
+              return;
+            }
+          }
+        }
+
+        // 빈 배경을 드래그하면 메인 돌 중심 360도 카메라 회전 시작
+        orbit.isRotating = true;
+        orbit.lastX = clientX;
+        orbit.lastY = clientY;
+      }
+
+      function onPointerMove(e) {
+        if (gameState.phase !== 'PLAYING') return;
+
+        const { clientX, clientY } = getNormalizedPointer(e);
+
+        // 1) 돌을 잡고 이동 중일 때
+        if (draggedStone) {
+          raycaster.setFromCamera(pointer, camera);
+
+          // 중앙 받침돌 근처로 오면 평면을 중앙(z=0, x=0 축) 쪽으로 자연스럽게 유도하여 올리기 쉽게 처리
+          const camDir = new THREE.Vector3();
+          camera.getWorldDirection(camDir);
+          camDir.y = 0;
+          camDir.normalize();
+
+          if (raycaster.ray.intersectPlane(dragPlane, intersectPt)) {
+            // 중앙 탑 근처일수록 중심축으로 스냅 보조
+            const radialDist = Math.sqrt(intersectPt.x * intersectPt.x + intersectPt.z * intersectPt.z);
+            let tx = intersectPt.x;
+            let tz = intersectPt.z;
+            if (radialDist < 2.2) {
+              tx *= 0.65;
+              tz *= 0.65;
+            }
+
+            const stackTop = getHighestPointNear(tx, tz, draggedStone);
+            const minY = Math.max(draggedStone.halfHeight + 0.15, stackTop + draggedStone.halfHeight + 0.08);
+
+            targetDragPos.set(
+              THREE.MathUtils.clamp(tx, -5.5, 5.5),
+              THREE.MathUtils.clamp( Math.max(intersectPt.y, minY), minY, 9.5),
+              THREE.MathUtils.clamp(tz, -5.5, 5.5)
+            );
+          }
+          return;
+        }
+
+        // 2) 빈 배경 드래그로 카메라 360도 회전 중일 때
+        if (orbit.isRotating) {
+          const dx = clientX - orbit.lastX;
+          const dy = clientY - orbit.lastY;
+          orbit.lastX = clientX;
+          orbit.lastY = clientY;
+
+          orbit.theta -= dx * 0.0075;
+          orbit.phi = THREE.MathUtils.clamp(orbit.phi - dy * 0.0055, 0.55, 1.42);
+          updateCameraPosition();
+        }
+      }
+
+      function onPointerUp() {
+        if (draggedStone) {
+          // 놓는 순간 과도한 속도를 줄여 부드럽고 안정적으로 안착하게 함
+          draggedStone.body.velocity.set(0, -0.15, 0);
+          draggedStone.body.angularVelocity.set(0, 0, 0);
+          draggedStone.body.wakeUp();
+          draggedStone = null;
+          guideLine.visible = false;
+          shadowCircle.visible = false;
+          document.getElementById('hud-guide-msg').textContent = '빈 화면을 끌어서 시점을 돌려보거나 다음 돌을 올려보세요';
+        }
+        orbit.isRotating = false;
+      }
+
+      function onWheel(e) {
+        if (gameState.phase !== 'PLAYING') return;
+        e.preventDefault();
+
+        if (draggedStone) {
+          // 돌을 잡고 있을 때 휠: 카메라 시선 기준 좌우 기울기 회전
+          const camDir = new THREE.Vector3();
+          camera.getWorldDirection(camDir);
+          camDir.y = 0;
+          camDir.normalize();
+          const rotQuat = new THREE.Quaternion().setFromAxisAngle(camDir, Math.sign(e.deltaY) * 0.07);
+          heldQuat.premultiply(rotQuat);
+        } else {
+          // 평상시 휠: 줌 인/아웃
+          orbit.radius = THREE.MathUtils.clamp(orbit.radius + Math.sign(e.deltaY) * 0.6, 8.0, 20.0);
+          updateCameraPosition();
+        }
+      }
+
+      function getHighestPointNear(x, z, ignoreStone) {
+        let highest = 0;
+        for (let i = 0; i < stones.length; i++) {
+          const s = stones[i];
+          if (s === ignoreStone) continue;
+          const dx = s.body.position.x - x;
+          const dz = s.body.position.z - z;
+          const dist = Math.sqrt(dx * dx + dz * dz);
+          if (dist < (s.radiusReach + 0.55)) {
+            const top = s.body.position.y + s.halfHeight;
+            if (top > highest) highest = top;
+          }
+        }
+        return highest;
+      }
+
+      // --- 9. 매 프레임 물리 판정 (쌓은 돌 계산 & 공정한 게임오버 규칙) ---
+      function stepGameLogic(dt) {
+        if (gameState.phase !== 'PLAYING') return;
+
+        // 드래그 중인 돌을 목표 좌표로 빠르고 매끄럽게 이동 (슬로우 답답함 해소)
+        if (draggedStone) {
+          const p = draggedStone.body.position;
+          const speed = 26;
+          draggedStone.body.velocity.set(
+            (targetDragPos.x - p.x) * speed,
+            (targetDragPos.y - p.y) * speed,
+            (targetDragPos.z - p.z) * speed
+          );
+          draggedStone.body.quaternion.set(heldQuat.x, heldQuat.y, heldQuat.z, heldQuat.w);
+          draggedStone.body.angularVelocity.set(0, 0, 0);
+
+          guideLine.position.set(p.x, 0, p.z);
+          shadowCircle.position.set(p.x, 0.02, p.z);
+        }
+
+        const mainTopY = baseStone ? (baseStone.body.position.y + baseStone.halfHeight) : 0.5;
+        let currentTowerStones = 0;
+        let highestY = mainTopY;
+        let newlySettled = false;
+
+        for (let i = 0; i < stones.length; i++) {
+          const s = stones[i];
+          if (s.isBase) continue;
+
+          // 현재 플레이어가 마우스로 잡고 있는 돌은 판정 보류 (잡고 있다가 다시 빼는 것은 게임오버 아님!)
+          if (s === draggedStone) continue;
+
+          const pos = s.body.position;
+          const radialDist = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
+          const speed = s.body.velocity.length() + s.body.angularVelocity.length() * 0.4;
+
+          // 메인 돌(또는 탑 영역) 위에 올라가 있는지 확인
+          const isAboveMainTower = (pos.y - s.halfHeight >= mainTopY - 0.18) && (radialDist < 2.25);
+
+          if (isAboveMainTower) {
+            currentTowerStones++;
+            const stoneTop = pos.y + s.halfHeight;
+            if (stoneTop > highestY) highestY = stoneTop;
+
+            // 마우스를 놓은 뒤 메인 돌 위에서 1.1초 이상 안정적으로 멈춰 있으면 '안착 완료'로 기록
+            if (speed < 0.25) {
+              s.settleTimer += dt;
+              if (!s.hasSettledOnTower && s.settleTimer >= 1.1) {
+                s.hasSettledOnTower = true;
+                newlySettled = true;
+              }
+            }
+          } else {
+            // 이미 메인 돌 위에 안착했던(쌓았던) 돌이 무너져서 바닥(강가)에 닿으면 게임오버!
+            if (s.hasSettledOnTower && pos.y - s.halfHeight < 0.28) {
+              endDoltopSession('돌탑이 무너졌습니다');
+              return;
+            }
+          }
+        }
+
+        const prevCount = gameState.stackedCount;
+        gameState.stackedCount = currentTowerStones;
+        const heightCm = Math.max(0, (highestY - mainTopY) * 18.0);
+        gameState.maxHeightCm = Math.max(gameState.maxHeightCm, heightCm);
+
+        if (newlySettled || currentTowerStones !== prevCount) {
+          updateHUDCounters();
+        }
+
+        if (newlySettled) {
+          gameState.countdownSec = 180; // 새 돌 안착 시 3분 타이머 리셋
+          sound.playSettleSound();
+          capture2DSilhouette();
+          document.getElementById('hud-guide-msg').textContent = '돌이 고요히 자리를 잡았습니다. 다음 돌을 올려보세요';
+        }
+
+        // 타이머 업데이트
+        gameState.elapsedSec += dt;
+        gameState.countdownSec = Math.max(0, gameState.countdownSec - dt);
+        const mins = String(Math.floor(gameState.countdownSec / 60)).padStart(2, '0');
+        const secs = String(Math.floor(gameState.countdownSec % 60)).padStart(2, '0');
+        document.getElementById('hud-timer').textContent = `${mins}:${secs}`;
+
+        if (gameState.countdownSec <= 0) {
+          endDoltopSession('세 분의 시간이 흘렀습니다');
+        }
+      }
+
+      function updateHUDCounters() {
+        document.getElementById('hud-stones').textContent = String(gameState.stackedCount);
+        document.getElementById('hud-height').textContent = gameState.maxHeightCm.toFixed(1);
+      }
+
+      function updateExtraStoneButton() {
+        const btn = document.getElementById('add-stone-btn');
+        btn.textContent = `돌 더 가져오기 (${gameState.extraSpawnsLeft})`;
+        btn.disabled = gameState.extraSpawnsLeft <= 0;
+      }
+
+      // --- 10. 내가 쌓은 돌탑 2D 블랙 실루엣 이미지 생성 ---
+      function capture2DSilhouette() {
+        if (!silRenderer || !baseStone) return;
+
+        const silScene = new THREE.Scene();
+        const inkMat = new THREE.MeshBasicMaterial({ color: 0x1A1A1A });
+
+        const mainTopY = baseStone.body.position.y + baseStone.halfHeight;
+        let maxY = 1.8;
+
+        stones.forEach(s => {
+          if (s === draggedStone) return;
+          const pos = s.body.position;
+          const radialDist = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
+          const isTowerPart = s.isBase || s.hasSettledOnTower || (pos.y - s.halfHeight >= mainTopY - 0.2 && radialDist < 2.3);
+
+          if (isTowerPart) {
+            const clone = new THREE.Mesh(s.mesh.geometry, inkMat);
+            clone.position.copy(s.mesh.position);
+            clone.quaternion.copy(s.mesh.quaternion);
+            silScene.add(clone);
+            if (pos.y + s.halfHeight > maxY) maxY = pos.y + s.halfHeight;
+          }
         });
 
-        function initThreeAndPhysics() {
-            const container = document.getElementById('canvas-container');
+        // 강가 수평선
+        const lineGeo = new THREE.BoxGeometry(5.5, 0.03, 0.03);
+        const lineMesh = new THREE.Mesh(lineGeo, inkMat);
+        lineMesh.position.set(0, 0.02, 0);
+        silScene.add(lineMesh);
 
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0xF6F5F0);
-            scene.fog = new THREE.FogExp2(0xF6F5F0, 0.012);
+        const lookY = Math.max(1.1, maxY * 0.48);
+        const dist = Math.max(7.2, (maxY + 2.2) * 2.0);
+        silCamera.position.set(Math.sin(orbit.theta) * dist, lookY + 0.2, Math.cos(orbit.theta) * dist);
+        silCamera.lookAt(0, lookY, 0);
 
-            camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 5, 14);
+        silRenderer.setClearColor(0xFFFFFF, 0);
+        silRenderer.clear();
+        silRenderer.render(silScene, silCamera);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            container.appendChild(renderer.domElement);
+        const ctx = silCanvas2D.getContext('2d');
+        ctx.clearRect(0, 0, SIL_SIZE, SIL_SIZE);
+        ctx.drawImage(silRenderer.domElement, 0, 0);
 
-            controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.05;
-            controls.maxPolarAngle = Math.PI / 2 - 0.02;
-            controls.minDistance = 6;
-            controls.maxDistance = 25;
-            controls.target.set(0, 1.5, 0);
+        gameState.silhouetteDataUrl = silCanvas2D.toDataURL('image/png');
 
-            world = new CANNON.World();
-            world.gravity.set(0, -9.82, 0);
-            world.broadphase = new CANNON.NaiveBroadphase();
-            world.solver.iterations = 10;
+        const mySilImg = document.getElementById('guestbook-my-silhouette');
+        if (mySilImg) mySilImg.src = gameState.silhouetteDataUrl;
+      }
 
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
-            scene.add(ambientLight);
+      // --- 11. 미니멀 QR 코드 캔버스 드로잉 ---
+      function drawMinimalistQR(canvasId, seedString) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const size = canvas.width;
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, size, size);
 
-            const dirLight = new THREE.DirectionalLight(0xfff8ee, 0.8);
-            dirLight.position.set(10, 20, 15);
-            dirLight.castShadow = true;
-            dirLight.shadow.mapSize.width = 1024;
-            dirLight.shadow.mapSize.height = 1024;
-            scene.add(dirLight);
+        const cells = 21;
+        const pad = Math.floor(size * 0.08);
+        const cellW = (size - pad * 2) / cells;
+        ctx.fillStyle = '#1A1A1A';
 
-            const hemiLight = new THREE.HemisphereLight(0xffffff, 0xd0c8b8, 0.4);
-            scene.add(hemiLight);
-
-            const groundGeo = new THREE.PlaneGeometry(100, 100);
-            const groundMat = new THREE.MeshStandardMaterial({ color: 0xEEECE3, roughness: 0.9 });
-            const groundMesh = new THREE.Mesh(groundGeo, groundMat);
-            groundMesh.rotation.x = -Math.PI / 2;
-            groundMesh.receiveShadow = true;
-            scene.add(groundMesh);
-
-            const groundBody = new CANNON.Body({
-                mass: 0,
-                shape: new CANNON.Plane()
-            });
-            groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
-            world.addBody(groundBody);
-
-            const mainGeo = new THREE.DodecahedronGeometry(1.2, 1);
-            const mainMat = new THREE.MeshStandardMaterial({ color: 0x6E6A60, roughness: 0.85, flatShading: true });
-            mainStoneMesh = new THREE.Mesh(mainGeo, mainMat);
-            mainStoneMesh.position.set(0, 0.8, 0);
-            mainStoneMesh.castShadow = true;
-            mainStoneMesh.receiveShadow = true;
-            scene.add(mainStoneMesh);
-
-            const mainShape = new CANNON.Sphere(1.1);
-            mainStoneBody = new CANNON.Body({
-                mass: 0,
-                position: new CANNON.Vec3(0, 0.8, 0)
-            });
-            mainStoneBody.addShape(mainShape);
-            world.addBody(mainStoneBody);
-
-            raycaster = new THREE.Raycaster();
-            mouse = new THREE.Vector2();
-
-            // 배경에서 미리 첫 번째 돌을 준비해둠
-            spawnNewStone();
-            animate();
-        }
-
-        function createProceduralStoneGeometry(radius = 0.8) {
-            const geometry = new THREE.IcosahedronGeometry(radius, 2);
-            const positionAttribute = geometry.attributes.position;
-            for (let i = 0; i < positionAttribute.count; i++) {
-                let x = positionAttribute.getX(i);
-                let y = positionAttribute.getY(i);
-                let z = positionAttribute.getZ(i);
-                const noise = 0.85 + Math.sin(x * 3) * Math.cos(y * 3) * 0.25;
-                positionAttribute.setXYZ(i, x * noise * 1.2, y * noise * 0.75, z * noise * 1.1);
+        function drawFinder(r0, c0) {
+          for (let r = 0; r < 7; r++) {
+            for (let c = 0; c < 7; c++) {
+              const border = (r === 0 || r === 6 || c === 0 || c === 6);
+              const inner = (r >= 2 && r <= 4 && c >= 2 && c <= 4);
+              if (border || inner) {
+                ctx.fillRect(pad + (c0 + c) * cellW, pad + (r0 + r) * cellW, Math.ceil(cellW), Math.ceil(cellW));
+              }
             }
-            geometry.computeVertexNormals();
-            return geometry;
+          }
         }
 
-        function createStoneBodyAndMesh(x, y, z, mass = 3) {
-            const radius = 0.65 + Math.random() * 0.2;
-            const geometry = createProceduralStoneGeometry(radius);
-            const color = stoneColors[Math.floor(Math.random() * stoneColors.length)];
-            const material = new THREE.MeshStandardMaterial({ 
-                color: color, 
-                roughness: 0.8, 
-                metalness: 0.1,
-                flatShading: true 
-            });
+        drawFinder(0, 0);
+        drawFinder(0, cells - 7);
+        drawFinder(cells - 7, 0);
 
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
-            mesh.position.set(x, y, z);
-            scene.add(mesh);
-
-            const shape = new CANNON.Sphere(radius * 0.85);
-            const body = new CANNON.Body({
-                mass: mass,
-                position: new CANNON.Vec3(x, y, z),
-                linearDamping: 0.4,
-                angularDamping: 0.4
-            });
-            body.addShape(shape);
-            world.addBody(body);
-
-            physicsBodies.push(body);
-            renderMeshes.push(mesh);
-            return { body, mesh };
+        let hash = 2166136261;
+        for (let i = 0; i < seedString.length; i++) {
+          hash ^= seedString.charCodeAt(i);
+          hash = Math.imul(hash, 16777619);
         }
 
-        function spawnNewStone() {
-            if (isGameOver) return;
-            // 화면 측면 안전한 위치에서 스폰
-            const side = Math.random() > 0.5 ? 4.0 : -4.0;
-            const stoneData = createStoneBodyAndMesh(side, 3.0, (Math.random() - 0.5) * 1.0, 3.5);
-            currentActiveStone = stoneData;
-            currentActiveStone.body.type = CANNON.Body.KINEMATIC;
-            currentActiveStone.body.velocity.set(0, 0, 0);
-            currentActiveStone.body.angularVelocity.set(0, 0, 0);
-        }
+        for (let r = 0; r < cells; r++) {
+          for (let c = 0; c < cells; c++) {
+            const inTopLeft = (r < 8 && c < 8);
+            const inTopRight = (r < 8 && c >= cells - 8);
+            const inBotLeft = (r >= cells - 8 && c < 8);
+            if (inTopLeft || inTopRight || inBotLeft) continue;
 
-        function setupEvents() {
-            document.getElementById('sound-toggle').addEventListener('click', toggleSound);
-
-            const domElem = renderer.domElement;
-            domElem.addEventListener('pointerdown', (e) => {
-                if (!isGameStarted || isGameOver || !currentActiveStone) return;
-                if (e.button !== 0) return;
-
-                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-
-                raycaster.setFromCamera(mouse, camera);
-                const intersects = raycaster.intersectObject(currentActiveStone.mesh);
-
-                if (intersects.length > 0) {
-                    isDragging = true;
-                    controls.enabled = false;
-                    planeZ = currentActiveStone.body.position.z;
-                }
-            });
-
-            domElem.addEventListener('pointermove', (e) => {
-                if (!isDragging || !currentActiveStone || isGameOver) return;
-
-                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-
-                raycaster.setFromCamera(mouse, camera);
-                const targetPos = new THREE.Vector3();
-                const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -planeZ);
-                raycaster.ray.intersectPlane(plane, targetPos);
-
-                currentActiveStone.body.position.x = THREE.MathUtils.lerp(currentActiveStone.body.position.x, targetPos.x, 0.3);
-                currentActiveStone.body.position.y = THREE.MathUtils.lerp(currentActiveStone.body.position.y, Math.max(targetPos.y, 1.2), 0.3);
-                currentActiveStone.body.position.z = THREE.MathUtils.lerp(currentActiveStone.body.position.z, targetPos.z, 0.3);
-                
-                currentActiveStone.body.velocity.set(0, 0, 0);
-                currentActiveStone.body.angularVelocity.set(0, 0, 0);
-            });
-
-            window.addEventListener('pointerup', () => {
-                if (isDragging && currentActiveStone) {
-                    isDragging = false;
-                    controls.enabled = true;
-
-                    currentActiveStone.body.type = CANNON.Body.DYNAMIC;
-                    currentActiveStone.body.mass = 3.5;
-                    currentActiveStone.body.updateMassProperties();
-
-                    const placedStone = currentActiveStone;
-                    currentActiveStone = null;
-
-                    setTimeout(() => {
-                        if (!isGameOver) {
-                            stackedStonesCount++;
-                            document.getElementById('display-count').innerText = `${stackedStonesCount} 개`;
-                            
-                            if (placedStone.body.position.y > maxTowerHeight) {
-                                maxTowerHeight = placedStone.body.position.y;
-                            }
-
-                            if (extraStoneCount > 0 || stackedStonesCount < 12) {
-                                spawnNewStone();
-                            } else {
-                                triggerGameOver("돌탑 완성");
-                            }
-                        }
-                    }, 2500);
-                }
-            });
-
-            document.getElementById('extra-stone-btn').addEventListener('click', () => {
-                if (extraStoneCount > 0 && !currentActiveStone && !isGameOver) {
-                    extraStoneCount--;
-                    document.getElementById('extra-stone-btn').innerText = `돌 더 가져오기 (${extraStoneCount})`;
-                    spawnNewStone();
-                }
-            });
-
-            document.getElementById('finish-btn').addEventListener('click', () => {
-                if (!isGameOver) triggerGameOver("직접 마무리");
-            });
-
-            document.getElementById('retry-btn').addEventListener('click', () => {
-                location.reload();
-            });
-
-            document.getElementById('download-png-btn').addEventListener('click', exportPNG);
-            document.getElementById('go-guestbook-btn').addEventListener('click', () => {
-                document.getElementById('result-modal').classList.remove('active');
-                document.getElementById('guestbook-modal').classList.add('active');
-            });
-
-            document.getElementById('open-contact-from-game').addEventListener('click', () => {
-                document.getElementById('contact-modal').classList.add('active');
-            });
-            document.getElementById('close-contact').addEventListener('click', () => {
-                document.getElementById('contact-modal').classList.remove('active');
-            });
-            document.getElementById('back-from-contact').addEventListener('click', () => {
-                document.getElementById('contact-modal').classList.remove('active');
-            });
-
-            document.getElementById('close-guestbook').addEventListener('click', () => {
-                document.getElementById('guestbook-modal').classList.remove('active');
-            });
-
-            const guestInput = document.getElementById('guestbook-input');
-            guestInput.addEventListener('input', (e) => {
-                if (e.target.value.length > 77) {
-                    e.target.value = e.target.value.substring(0, 77);
-                }
-                document.getElementById('char-count').innerText = e.target.value.length;
-            });
-
-            document.getElementById('submit-guestbook').addEventListener('click', () => {
-                const text = guestInput.value.trim();
-                if (!text) return;
-                
-                guestbookEntries.unshift({
-                    name: userName,
-                    text: text,
-                    silhouette: currentSilhouetteDataUrl,
-                    date: new Date().toLocaleDateString()
-                });
-
-                guestInput.value = "";
-                document.getElementById('char-count').innerText = "0";
-                renderGuestbook();
-                document.getElementById('guestbook-modal').classList.remove('active');
-            });
-        }
-
-        function checkGameOverCondition() {
-            if (isGameOver || !isGameStarted) return;
-
-            for (let i = 0; i < physicsBodies.length; i++) {
-                const b = physicsBodies[i];
-                if (currentActiveStone && b === currentActiveStone.body) continue;
-
-                if (b.position.y < 0.3 && b.position.y > -5) {
-                    const distFromCenter = Math.sqrt(b.position.x**2 + b.position.z**2);
-                    if (distFromCenter < 2.5) {
-                        triggerGameOver("돌탑 무너짐");
-                        break;
-                    }
-                }
+            hash ^= (r * 31 + c * 17);
+            hash = Math.imul(hash, 16777619);
+            if ((Math.abs(hash) % 10) < 5) {
+              ctx.fillRect(pad + c * cellW, pad + r * cellW, Math.ceil(cellW), Math.ceil(cellW));
             }
+          }
+        }
+      }
+
+      // --- 12. 시간 포맷 헬퍼 ---
+      function formatDateTime(d) {
+        if (!d) return '—';
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      }
+
+      function formatDuration(sec) {
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60);
+        return m > 0 ? `${m}분 ${s}초` : `${s}초`;
+      }
+
+      // --- 13. 게임 시작 / 종료 / 재시작 전역 함수 ---
+      window.startDoltopGame = function () {
+        if (gameState.phase === 'PLAYING' || gameState.phase === 'CAMERA_DESCEND') return;
+
+        const inputEl = document.getElementById('nickname-input');
+        const rawName = inputEl ? inputEl.value.trim() : '';
+        gameState.nickname = rawName || '강가의 여행자';
+
+        document.getElementById('hud-builder').textContent = gameState.nickname;
+        document.getElementById('guestbook-author').value = gameState.nickname;
+
+        const intro = document.getElementById('intro-screen');
+        intro.classList.add('opacity-0', 'invisible');
+
+        sound.start();
+
+        gameState.phase = 'CAMERA_DESCEND';
+        orbit.introProgress = 0;
+      };
+
+      window.resetCameraAngle = function () {
+        orbit.theta = 0;
+        orbit.phi = 1.18;
+        orbit.radius = 13.5;
+        updateCameraPosition();
+      };
+
+      window.spawnMoreStones = function () {
+        if (gameState.phase !== 'PLAYING' || gameState.extraSpawnsLeft <= 0) return;
+        gameState.extraSpawnsLeft--;
+        updateExtraStoneButton();
+
+        // 메인 돌에서 멀리 떨어진 안전한 외곽에 서로 다른 조형 타입으로 3개 추가 스폰
+        for (let i = 0; i < 3; i++) {
+          const angle = (Math.random() - 0.5) * Math.PI * 1.4;
+          const dist = 4.2 + Math.random() * 1.2;
+          const x = Math.cos(angle) * dist;
+          const z = Math.sin(angle) * dist;
+          const randomType = Math.floor(Math.random() * 5);
+          spawnSingleStoneAt(x, z, Date.now() * 0.01 + i * 11.3, randomType);
+        }
+      };
+
+      window.finishGameVoluntarily = function () {
+        if (gameState.phase !== 'PLAYING') return;
+        capture2DSilhouette();
+        endDoltopSession('고요히 쌓아 올린 기록');
+      };
+
+      function endDoltopSession(reasonText) {
+        if (gameState.phase === 'ENDED') return;
+        gameState.phase = 'ENDED';
+        draggedStone = null;
+        guideLine.visible = false;
+        shadowCircle.visible = false;
+
+        gameState.finishedAt = new Date();
+        gameState.endReason = reasonText;
+
+        if (!gameState.silhouetteDataUrl) {
+          capture2DSilhouette();
         }
 
-        function triggerGameOver(reason) {
-            if (isGameOver) return;
-            isGameOver = true;
+        document.getElementById('result-silhouette-img').src = gameState.silhouetteDataUrl;
+        document.getElementById('result-status-label').textContent = reasonText;
+        document.getElementById('res-count').textContent = `${gameState.stackedCount}개`;
+        document.getElementById('res-height').textContent = `${gameState.maxHeightCm.toFixed(1)}cm`;
+        document.getElementById('res-builder').textContent = gameState.nickname;
+        document.getElementById('res-start-time').textContent = formatDateTime(gameState.startedAt);
+        document.getElementById('res-end-time').textContent = formatDateTime(gameState.finishedAt);
+        document.getElementById('res-duration').textContent = formatDuration(gameState.elapsedSec);
 
-            const durationSec = Math.floor((Date.now() - startTime) / 1000);
-            const mins = String(Math.floor(durationSec / 60)).padStart(2, '0');
-            const secs = String(durationSec % 60).padStart(2, '0');
+        document.getElementById('guestbook-my-stats').textContent = `${gameState.stackedCount}개 · ${gameState.maxHeightCm.toFixed(1)}cm`;
 
-            document.getElementById('result-title-text').innerText = reason === "돌탑 무너짐" ? "돌탑이 무너졌습니다" : "돌탑 쌓기를 마쳤습니다";
-            document.getElementById('result-time-text').innerText = `소요 시간 ${mins}m ${secs}s`;
-            document.getElementById('res-stones').innerText = `${stackedStonesCount} 개`;
-            document.getElementById('res-height').innerText = `${Math.max(0, (maxTowerHeight - 0.8) * 10).toFixed(1)} cm`;
+        drawMinimalistQR('result-site-qr', SITE_URL);
+        document.getElementById('result-modal').classList.remove('opacity-0', 'invisible');
+      }
 
-            generateSilhouetteImage();
-            document.getElementById('result-modal').classList.add('active');
+      window.restartDoltopGame = function () {
+        document.getElementById('result-modal').classList.add('opacity-0', 'invisible');
+        setupInitialStones();
+        gameState.startedAt = new Date();
+        gameState.finishedAt = null;
+        gameState.elapsedSec = 0;
+        gameState.countdownSec = 180;
+        gameState.phase = 'PLAYING';
+      };
+
+      window.toggleDoltopSound = function () {
+        const muted = sound.toggle();
+        document.getElementById('bgm-btn').textContent = muted ? '소리 꺼짐' : '소리 켜짐';
+      };
+
+      // --- 14. 고해상도 1080x1080 PNG 포스터 내보내기 (모노크롬 화이트/블랙) ---
+      window.downloadPosterPNG = function () {
+        const canvas = document.createElement('canvas');
+        const S = 1080;
+        canvas.width = S;
+        canvas.height = S;
+        const ctx = canvas.getContext('2d');
+
+        // 배경 순백색 톤
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, S, S);
+
+        const M = 70;
+        ctx.strokeStyle = '#DCDCDC';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(M, M, S - M * 2, S - M * 2);
+
+        const img = new Image();
+        img.onload = function () {
+          // 중앙 2D 돌탑 실루엣
+          ctx.drawImage(img, 190, 180, 700, 700);
+
+          // 상단 타이틀
+          ctx.fillStyle = '#8C8C8C';
+          ctx.font = '300 20px "Noto Sans KR", sans-serif';
+          ctx.fillText(gameState.endReason, M + 40, M + 58);
+
+          ctx.fillStyle = '#1A1A1A';
+          ctx.font = '400 38px "Nanum Myeongjo", serif';
+          ctx.fillText('강가의 돌탑', M + 40, M + 108);
+
+          ctx.textAlign = 'right';
+          ctx.fillStyle = '#8C8C8C';
+          ctx.font = '300 18px "Noto Sans KR", sans-serif';
+          ctx.fillText('쌓은 돌 · 최고 높이', S - M - 40, M + 58);
+
+          ctx.fillStyle = '#1A1A1A';
+          ctx.font = '400 34px "Noto Sans KR", sans-serif';
+          ctx.fillText(`${gameState.stackedCount}개 · ${gameState.maxHeightCm.toFixed(1)}cm`, S - M - 40, M + 108);
+          ctx.textAlign = 'left';
+
+          ctx.strokeStyle = '#DCDCDC';
+          ctx.beginPath();
+          ctx.moveTo(M + 40, M + 138);
+          ctx.lineTo(S - M - 40, M + 138);
+          ctx.stroke();
+
+          // 하단 메타데이터 영역
+          const botY = S - M - 160;
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.94)';
+          ctx.fillRect(M + 20, botY, S - (M + 20) * 2, 145);
+
+          ctx.strokeStyle = '#DCDCDC';
+          ctx.beginPath();
+          ctx.moveTo(M + 40, botY);
+          ctx.lineTo(S - M - 40, botY);
+          ctx.stroke();
+
+          const metaCols = [
+            { label: '쌓은 이', val: gameState.nickname, x: M + 40 },
+            { label: '시작 시간', val: formatDateTime(gameState.startedAt), x: M + 250 },
+            { label: '완성 시간', val: formatDateTime(gameState.finishedAt), x: M + 520 },
+            { label: '걸린 시간', val: formatDuration(gameState.elapsedSec), x: M + 780 }
+          ];
+
+          metaCols.forEach(c => {
+            ctx.fillStyle = '#8C8C8C';
+            ctx.font = '300 16px "Noto Sans KR", sans-serif';
+            ctx.fillText(c.label, c.x, botY + 40);
+
+            ctx.fillStyle = '#1A1A1A';
+            ctx.font = '400 20px "Noto Sans KR", sans-serif';
+            ctx.fillText(c.val, c.x, botY + 72);
+          });
+
+          // 사이트 링크 & 인스타그램 표기
+          ctx.fillStyle = '#666666';
+          ctx.font = '300 16px "Noto Sans KR", sans-serif';
+          ctx.fillText(`${SITE_URL}   |   Instagram ${INSTA_HANDLE}`, M + 40, botY + 122);
+
+          const qrCanvas = document.getElementById('result-site-qr');
+          if (qrCanvas) {
+            ctx.drawImage(qrCanvas, S - M - 96, botY + 82, 56, 56);
+          }
+
+          const link = document.createElement('a');
+          const safeName = (gameState.nickname || '기록').replace(/[^a-zA-Z0-9가-힣_-]/g, '_');
+          link.download = `돌탑_${safeName}_${gameState.stackedCount}개.png`;
+          link.href = canvas.toDataURL('image/png');
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        };
+        img.src = gameState.silhouetteDataUrl;
+      };
+
+      // --- 15. 마음 남기기 (방명록: 초기 예시 글 0개, 77자 제한, 삭제 불가, 2D 실루엣 프로필) ---
+      function getGuestbookEntries() {
+        try {
+          const raw = localStorage.getItem(GUESTBOOK_STORAGE_KEY);
+          if (!raw) return [];
+          const parsed = JSON.parse(raw);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          return [];
+        }
+      }
+
+      function renderGuestbookList() {
+        const list = getGuestbookEntries();
+        document.getElementById('guestbook-total').textContent = `총 ${list.length}개의 기록`;
+        const container = document.getElementById('guestbook-list');
+        container.innerHTML = '';
+
+        if (list.length === 0) {
+          container.innerHTML = `
+            <div class="py-12 text-center text-xs text-[#9E9A90]">
+              아직 남겨진 마음이 없습니다. 첫 번째로 당신의 돌탑과 마음을 남겨보세요.
+            </div>
+          `;
+          return;
         }
 
-        function generateSilhouetteImage() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 300;
-            canvas.height = 300;
-            const ctx = canvas.getContext('2d');
+        list.forEach(item => {
+          const article = document.createElement('article');
+          article.className = 'py-5 flex items-start justify-between gap-4';
 
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(0, 0, 300, 300);
+          const left = document.createElement('div');
+          left.className = 'flex items-start space-x-3.5';
 
-            ctx.fillStyle = '#3F3D39';
-            ctx.beginPath();
-            ctx.arc(150, 240, 50, 0, Math.PI * 2);
-            ctx.fill();
+          // 프로필: 참가자가 쌓은 돌탑 2D 실루엣 이미지
+          const avatar = document.createElement('div');
+          avatar.className = 'w-11 h-11 bg-[#FFFFFF] border border-[#DCDCDC] flex items-center justify-center shrink-0 overflow-hidden';
+          if (item.silhouette) {
+            const img = document.createElement('img');
+            img.src = item.silhouette;
+            img.alt = '돌탑 실루엣';
+            img.className = 'w-full h-full object-contain p-0.5';
+            avatar.appendChild(img);
+          }
 
-            let currentY = 200;
-            for (let i = 0; i < Math.min(stackedStonesCount, 8); i++) {
-                ctx.beginPath();
-                ctx.ellipse(150 + (i % 2 === 0 ? 4 : -4), currentY, 35 - i*2, 22, 0, 0, Math.PI * 2);
-                ctx.fill();
-                currentY -= 22;
-            }
+          const content = document.createElement('div');
+          content.className = 'space-y-1';
 
-            currentSilhouetteDataUrl = canvas.toDataURL('image/png');
-            const previewBox = document.getElementById('silhouette-preview-box');
-            previewBox.innerHTML = `<img src="${currentSilhouetteDataUrl}" alt="돌탑 실루엣">`;
+          const header = document.createElement('div');
+          header.className = 'flex items-center space-x-2.5 text-xs';
+
+          const authorSpan = document.createElement('span');
+          authorSpan.className = 'font-normal text-[#1A1A1A]';
+          authorSpan.textContent = item.nickname;
+
+          const statSpan = document.createElement('span');
+          statSpan.className = 'text-[11px] tabular-nums text-[#8C8C8C]';
+          statSpan.textContent = `${item.stones}개 · ${item.heightCm}cm`;
+
+          header.append(authorSpan, statSpan);
+
+          const bodyP = document.createElement('p');
+          bodyP.className = 'text-sm text-[#1A1A1A] font-light leading-relaxed break-all';
+          bodyP.textContent = item.text;
+
+          content.append(header, bodyP);
+          left.append(avatar, content);
+
+          const dateSpan = document.createElement('span');
+          dateSpan.className = 'text-[11px] tabular-nums text-[#8C8C8C] shrink-0';
+          dateSpan.textContent = item.date;
+
+          article.append(left, dateSpan);
+          container.appendChild(article);
+        });
+      }
+
+      window.updateGuestbookCharCount = function (textarea) {
+        const chars = Array.from(textarea.value);
+        if (chars.length > 77) {
+          textarea.value = chars.slice(0, 77).join('');
+        }
+        document.getElementById('guestbook-char-count').textContent = `${Array.from(textarea.value).length} / 77`;
+      };
+
+      window.submitGuestbookEntry = function () {
+        const textarea = document.getElementById('guestbook-textarea');
+        const text = Array.from(textarea.value.trim()).slice(0, 77).join('');
+        if (!text) return;
+
+        if (!gameState.silhouetteDataUrl) {
+          capture2DSilhouette();
         }
 
-        function renderGuestbook() {
-            const container = document.getElementById('guestbook-list-container');
-            container.innerHTML = "";
+        const list = getGuestbookEntries();
+        const entry = Object.freeze({
+          id: 'NOTE_' + Date.now(),
+          nickname: gameState.nickname || '참가자',
+          stones: gameState.stackedCount,
+          heightCm: gameState.maxHeightCm.toFixed(1),
+          text: text,
+          date: formatDateTime(new Date()),
+          silhouette: gameState.silhouetteDataUrl
+        });
 
-            if (guestbookEntries.length === 0) {
-                container.innerHTML = `<div style="text-align: center; color: var(--text-light); font-size: 12px; padding: 20px;">아직 남겨진 마음이 없습니다. 첫 번째 마음을 남겨보세요.</div>`;
-                return;
-            }
+        list.unshift(entry);
+        try {
+          localStorage.setItem(GUESTBOOK_STORAGE_KEY, JSON.stringify(list));
+        } catch (e) {}
 
-            guestbookEntries.forEach(entry => {
-                const item = document.createElement('div');
-                item.className = 'guestbook-item';
-                item.innerHTML = `
-                    <div class="guestbook-profile">
-                        <img src="${entry.silhouette || ''}" alt="프로필">
-                    </div>
-                    <div class="guestbook-content">
-                        <div class="guestbook-info">
-                            <span class="guestbook-author">${entry.name}</span>
-                            <span style="font-size: 10px; color: var(--text-light);">${entry.date}</span>
-                        </div>
-                        <div class="guestbook-text">${entry.text}</div>
-                    </div>
-                `;
-                container.appendChild(item);
-            });
+        textarea.value = '';
+        document.getElementById('guestbook-char-count').textContent = '0 / 77';
+        document.getElementById('guestbook-notice').textContent = '소중한 마음이 영구히 기록되었습니다.';
+        renderGuestbookList();
+      };
+
+      window.openGuestbookFromResult = function () {
+        document.getElementById('result-modal').classList.add('opacity-0', 'invisible');
+        window.openGuestbookModal();
+      };
+
+      window.openGuestbookModal = function () {
+        if (!gameState.silhouetteDataUrl) capture2DSilhouette();
+        document.getElementById('guestbook-author').value = gameState.nickname || '참가자';
+        document.getElementById('guestbook-my-stats').textContent = `${gameState.stackedCount}개 · ${gameState.maxHeightCm.toFixed(1)}cm`;
+        renderGuestbookList();
+        document.getElementById('guestbook-modal').classList.remove('opacity-0', 'invisible');
+      };
+
+      window.closeGuestbookModal = function () {
+        document.getElementById('guestbook-modal').classList.add('opacity-0', 'invisible');
+        if (gameState.phase === 'ENDED') {
+          document.getElementById('result-modal').classList.remove('opacity-0', 'invisible');
+        }
+      };
+
+      // --- 16. 문의 페이지 열기 / 닫기 ---
+      window.openContactModal = function () {
+        drawMinimalistQR('contact-insta-qr', INSTA_URL);
+        document.getElementById('contact-modal').classList.remove('opacity-0', 'invisible');
+      };
+
+      window.closeContactModal = function () {
+        document.getElementById('contact-modal').classList.add('opacity-0', 'invisible');
+      };
+
+      // --- 17. 메인 애니메이션 루프 ---
+      let lastTime = performance.now();
+
+      function animate(now) {
+        requestAnimationFrame(animate);
+
+        const dt = Math.min((now - lastTime) / 1000, 0.05);
+        lastTime = now;
+
+        // 인트로 카메라 하강 모션
+        if (gameState.phase === 'CAMERA_DESCEND') {
+          orbit.introProgress += dt / 2.2;
+          if (orbit.introProgress >= 1) {
+            orbit.introProgress = 1;
+            gameState.phase = 'PLAYING';
+            gameState.startedAt = new Date();
+            document.getElementById('game-hud').classList.remove('opacity-0', 'invisible');
+          }
+          updateCameraPosition();
         }
 
-        function generateQRCodes() {
-            const qrBoxes = [document.getElementById('qr-code-area'), document.getElementById('contact-qr')];
-            qrBoxes.forEach(box => {
-                if(!box) return;
-                box.innerHTML = `
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; width: 36px; height: 36px;">
-                        <div style="background:#3F3D39;"></div><div style="background:#3F3D39;"></div><div style="background:#3F3D39;"></div>
-                        <div style="background:#3F3D39;"></div><div style="background:#F6F5F0;"></div><div style="background:#3F3D39;"></div>
-                        <div style="background:#3F3D39;"></div><div style="background:#3F3D39;"></div><div style="background:#3F3D39;"></div>
-                    </div>
-                `;
-            });
+        // 물리 엔진 업데이트 및 메쉬 동기화
+        if (world) {
+          world.step(1 / 60, dt, 2);
+          for (let i = 0; i < stones.length; i++) {
+            stones[i].mesh.position.copy(stones[i].body.position);
+            stones[i].mesh.quaternion.copy(stones[i].body.quaternion);
+          }
         }
 
-        function exportPNG() {
-            const canvas = document.getElementById('export-canvas');
-            const ctx = canvas.getContext('2d');
-
-            ctx.fillStyle = '#FCFAF5';
-            ctx.fillRect(0, 0, 1080, 1080);
-
-            ctx.strokeStyle = '#E2DFD6';
-            ctx.lineWidth = 4;
-            ctx.strokeRect(60, 60, 960, 960);
-
-            ctx.fillStyle = '#3F3D39';
-            ctx.font = '300 32px "Noto Sans KR", sans-serif';
-            ctx.fillText('돌탑 — 고요한 강가의 기록', 100, 130);
-
-            const img = new Image();
-            img.src = currentSilhouetteDataUrl;
-            img.onload = () => {
-                ctx.drawImage(img, 340, 220, 400, 400);
-
-                ctx.font = '400 24px "Noto Sans KR", sans-serif';
-                ctx.fillText(`참가자 : ${userName}`, 100, 720);
-                ctx.fillText(`쌓은 돌 : ${stackedStonesCount} 개`, 100, 770);
-                ctx.fillText(`최고 높이 : ${Math.max(0, (maxTowerHeight - 0.8) * 10).toFixed(1)} cm`, 100, 820);
-
-                ctx.font = '14px "Noto Sans KR", sans-serif';
-                ctx.fillStyle = '#8C887F';
-                ctx.fillText('https://jaeyngw00.github.io/doltop/', 100, 910);
-                ctx.fillText('@jaeyngwoo', 100, 940);
-
-                const link = document.createElement('a');
-                link.download = `Cairn_${userName}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-            };
+        if (gameState.phase === 'PLAYING') {
+          stepGameLogic(dt);
         }
 
-        let clock = new THREE.Clock();
-        function animate() {
-            requestAnimationFrame(animate);
-            const delta = clock.getDelta();
-
-            if (isGameStarted && !isGameOver) {
-                world.step(1 / 60, delta, 3);
-                for (let i = 0; i < physicsBodies.length; i++) {
-                    renderMeshes[i].position.copy(physicsBodies[i].position);
-                    renderMeshes[i].quaternion.copy(physicsBodies[i].quaternion);
-                }
-                checkGameOverCondition();
-            }
-
-            controls.update();
-            renderer.render(scene, camera);
+        if (renderer && scene && camera) {
+          renderer.render(scene, camera);
         }
+      }
 
+      // --- 18. 이벤트 바인딩 및 시작 ---
+      function initEvents() {
         window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+          if (!camera || !renderer) return;
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
         });
-    </script>
+
+        const domEl = renderer.domElement;
+        domEl.addEventListener('mousedown', onPointerDown);
+        window.addEventListener('mousemove', onPointerMove);
+        window.addEventListener('mouseup', onPointerUp);
+
+        domEl.addEventListener('touchstart', onPointerDown, { passive: false });
+        window.addEventListener('touchmove', onPointerMove, { passive: false });
+        window.addEventListener('touchend', onPointerUp);
+
+        window.addEventListener('wheel', onWheel, { passive: false });
+        domEl.addEventListener('contextmenu', e => e.preventDefault());
+      }
+
+      window.addEventListener('DOMContentLoaded', () => {
+        initThreeAndPhysics();
+        initEvents();
+        drawMinimalistQR('result-site-qr', SITE_URL);
+        drawMinimalistQR('contact-insta-qr', INSTA_URL);
+        renderGuestbookList();
+        requestAnimationFrame(animate);
+      });
+    })();
+  </script>
 </body>
 </html>
