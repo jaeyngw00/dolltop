@@ -553,7 +553,6 @@
 
     <div id="canvas-container"></div>
 
-    <!-- 인트로 화면: 버튼에 직접 onclick 함수를 박아두어 무조건 실행되게 함 -->
     <div id="intro-screen">
         <div class="intro-box">
             <h1 class="intro-title">돌탑</h1>
@@ -738,7 +737,7 @@
             }, 3500);
         }
 
-        // 전역 함수로 분리하여 HTML 태그에서 직접 호출 보장
+        // --- 핵심 수정: 시작 버튼 누를 때 3D 엔진 및 첫 돌 스폰이 무조건 안전하게 실행되도록 보장 ---
         window.startGameNow = function() {
             if (isGameStarted) return;
             const input = document.getElementById('nickname-input').value.trim();
@@ -760,6 +759,11 @@
             startTime = Date.now();
             isGameStarted = true;
             initAudio();
+
+            // 게임 시작 직후 만약 첫 돌이 생성되지 않았다면 즉시 생성 보장
+            if (!currentActiveStone) {
+                spawnNewStone();
+            }
         };
 
         window.addEventListener('load', () => {
@@ -845,6 +849,7 @@
             raycaster = new THREE.Raycaster();
             mouse = new THREE.Vector2();
 
+            // 배경에서 미리 첫 번째 돌을 준비해둠
             spawnNewStone();
             animate();
         }
@@ -897,8 +902,9 @@
 
         function spawnNewStone() {
             if (isGameOver) return;
-            const side = Math.random() > 0.5 ? 4.5 : -4.5;
-            const stoneData = createStoneBodyAndMesh(side, 3.5, (Math.random() - 0.5) * 1.5, 3.5);
+            // 화면 측면 안전한 위치에서 스폰
+            const side = Math.random() > 0.5 ? 4.0 : -4.0;
+            const stoneData = createStoneBodyAndMesh(side, 3.0, (Math.random() - 0.5) * 1.0, 3.5);
             currentActiveStone = stoneData;
             currentActiveStone.body.type = CANNON.Body.KINEMATIC;
             currentActiveStone.body.velocity.set(0, 0, 0);
